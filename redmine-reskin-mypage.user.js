@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: My Page Layout
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.1.0
+// @version      1.2.0
 // @description  My Page-only layout: card-styled blocks and decluttering. Only runs on /my/page, so it can never conflict with styling on other Redmine pages. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -19,7 +19,30 @@
   // @match-scoped to that path rather than relying on selector scoping —
   // it simply never loads its CSS/JS anywhere else.
   const CSS = `
+/* ---- block wrapper reduced to just the board ----
+   The .mypage-box card was a second frame around content the board columns
+   already frame, and its "Mir zugewiesene Tickets" heading duplicated what
+   the columns show. Strip the chrome so the board sits straight on the page.
+
+   The block controls (drag handle, delete, column settings) are part of that
+   same chrome and go with it — they stay reachable by switching the reskin
+   off. Blocks that are NOT issue lists (news, documents, calendar) keep the
+   card and heading via .rr-keep-box, since they have no board to stand on
+   their own; that class is applied by the JS below. */
 html.rr-active .mypage-box {
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin-bottom: 26px !important;
+}
+html.rr-active .mypage-box > h3,
+html.rr-active .mypage-box > .contextual {
+  display: none !important;
+}
+
+html.rr-active .mypage-box.rr-keep-box {
   background: var(--rr-surface) !important;
   border: 1px solid var(--rr-border) !important;
   border-radius: var(--rr-radius) !important;
@@ -27,7 +50,11 @@ html.rr-active .mypage-box {
   padding: 16px !important;
   margin-bottom: 16px !important;
 }
-html.rr-active .mypage-box h3 {
+html.rr-active .mypage-box.rr-keep-box > h3,
+html.rr-active .mypage-box.rr-keep-box > .contextual {
+  display: revert !important;
+}
+html.rr-active .mypage-box.rr-keep-box > h3 {
   font-size: 14px !important;
   font-weight: 600 !important;
   color: var(--rr-text) !important;
@@ -35,7 +62,7 @@ html.rr-active .mypage-box h3 {
   padding-bottom: 8px !important;
   margin-bottom: 12px !important;
 }
-html.rr-active .mypage-box h3 a { color: var(--rr-text) !important; }
+html.rr-active .mypage-box.rr-keep-box > h3 a { color: var(--rr-text) !important; }
 
 /* Redmine draws a dashed border on the sortable drop-target columns
    (#list-top/-left/-right) — not meaningful once boxes are card-styled. */
@@ -67,4 +94,29 @@ html.rr-active body.controller-my.action-page #my-page {
   // DOMContentLoaded guarantees we win any specificity tie against
   // Redmine's own (later-loading) stylesheets.
   document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
+
+  // Only issue-list blocks become boards, so only they can lose their card
+  // and heading and still make sense. Anything else on My Page (news,
+  // documents, calendar, spent time) keeps both — without a board it would
+  // otherwise be unlabelled content floating on the page background.
+  function markNonBoardBlocks() {
+    document.querySelectorAll('.mypage-box').forEach((block) => {
+      if (!block.querySelector('table.list.issues')) {
+        block.classList.add('rr-keep-box');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    markNonBoardBlocks();
+    // Redmine replaces a block's markup over AJAX (adding a block, saving
+    // column settings), so re-check when that happens.
+    const page = document.getElementById('my-page');
+    if (page) {
+      new MutationObserver(markNonBoardBlocks).observe(page, {
+        childList: true,
+        subtree: true,
+      });
+    }
+  });
 })();
