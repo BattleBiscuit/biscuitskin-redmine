@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.4.0
+// @version      1.5.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -102,6 +102,9 @@ html.rr-active #header {
   /* row-gap 0: the project tab bar becomes a second row (see #main-menu
      below) and must sit flush against the first, not 28px below it. */
   gap: 0 28px !important;
+  /* Redmine gives #header a fixed height (5.3em) sized for its own
+     absolutely-positioned tab bar; that would clip our second row. */
+  height: auto !important;
 }
 html.rr-active #header h1 {
   color: var(--rr-text) !important;
@@ -212,14 +215,23 @@ html.rr-active .rr-header-user #loggedas { color: var(--rr-muted) !important; }
    where it consumes the whole row and pushes the actual nav off-screen.
    Give it a high order and full-width basis so it wraps onto its own second
    row beneath them. Negative side margins cancel #header's padding so its
-   divider spans the full width. */
+   divider spans the full width.
+
+   position:static is the load-bearing part: Redmine's own CSS sets
+   #main-menu to position:absolute; bottom:0 inside #header. Absolutely
+   positioned elements are out of flow, so they ignore order/flex-basis
+   entirely and just overlay the first row — which is exactly what the
+   overlapping header looked like. */
 html.rr-active #main-menu {
+  position: static !important;
   order: 5 !important;
   flex: 1 0 100% !important;
   margin: 0 -20px !important;
   padding: 0 20px !important;
   border-top: 1px solid var(--rr-border) !important;
   background: none !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 /* Redmine's stock .tabs component — used by #main-menu here and by the
