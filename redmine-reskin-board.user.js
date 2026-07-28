@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.7.0
+// @version      1.8.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -109,10 +109,28 @@ html.rr-active .rr-board-generated {
 }
 /* Locally-marked-blocked cards get a ring plus the badge. The ring is an
    inset shadow rather than border-color so the left edge keeps showing the
-   priority colour. The badge itself is hidden unless the card is blocked, so
-   it occupies no space on a normal card. */
-.rr-card .rr-blocked-badge { display: none !important; }
-.rr-card.rr-blocked .rr-blocked-badge { display: inline-flex !important; }
+   priority colour.
+
+   The badge is defined here rather than in the global theme because the
+   board is its only consumer — the issue view uses the labelled
+   .rr-block-toggle instead. Defining it globally meant the global rule's
+   higher specificity overrode this hide rule and the badge appeared on
+   every card. No !important needed now that nothing competes for it. */
+.rr-card .rr-blocked-badge {
+  display: none;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--rr-blocked-soft);
+  color: var(--rr-blocked);
+  border: 1px solid var(--rr-blocked-line);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rr-card.rr-blocked .rr-blocked-badge { display: inline-flex; }
 .rr-card.rr-blocked {
   box-shadow: inset 0 0 0 1px var(--rr-blocked), var(--rr-shadow);
 }

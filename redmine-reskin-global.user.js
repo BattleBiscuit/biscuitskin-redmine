@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.11.0
+// @version      1.12.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -621,20 +621,13 @@ html.rr-active .rr-chip.rr-chip-on {
    scopes, so each script that needs the state carries its own copy. Only the
    CSS is genuinely shared, via the document. The storage key is
    "rr-blocked-issues": a JSON array of issue ids as strings. */
-html.rr-active .rr-blocked-badge {
-  display: inline-flex !important;
-  align-items: center !important;
-  padding: 1px 8px !important;
-  border-radius: 999px !important;
-  background: var(--rr-blocked-soft) !important;
-  color: var(--rr-blocked) !important;
-  border: 1px solid var(--rr-blocked-line) !important;
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.04em !important;
-  text-transform: uppercase !important;
-  white-space: nowrap !important;
-}
+/* The "Blockiert" badge itself is NOT defined here. It has a single consumer
+   (the My Page board), and setting its display property here meant this rule
+   — html.rr-active .rr-blocked-badge, specificity 0,2,1 — outranked the
+   board's .rr-card .rr-blocked-badge hide rule at 0,2,0, so the badge showed
+   on every card. Keeping single-consumer visuals in their owning script
+   avoids that class of cross-script fight; only genuinely shared components
+   (chips, the control pair below) belong here. */
 /* ---- compact card controls ----
    The blocked toggle and the board's local-priority stepper share one box so
    they read as a matched pair rather than two differently-sized glyphs. Both
