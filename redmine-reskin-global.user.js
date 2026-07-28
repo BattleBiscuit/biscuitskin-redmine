@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.0.0
+// @version      1.1.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -42,24 +42,28 @@
   --rr-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Toggle button (dev aid, not part of the "design") */
+/* Toggle button (dev aid, not part of the "design"). Lives inline in the
+   .rr-header-user cluster on the right of the header; .rr-floating is a
+   fallback only used if #header couldn't be found. */
 #rr-toggle-btn {
-  position: fixed;
-  bottom: 12px;
-  right: 12px;
-  z-index: 99999;
   font-family: var(--rr-font);
   font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
   border: 1px solid var(--rr-border);
   background: var(--rr-surface);
   color: var(--rr-text);
-  box-shadow: var(--rr-shadow);
   cursor: pointer;
   opacity: 0.85;
 }
 #rr-toggle-btn:hover { opacity: 1; }
+#rr-toggle-btn.rr-floating {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: 99999;
+  box-shadow: var(--rr-shadow);
+}
 
 /* ----------------------------- base ----------------------------- */
 html.rr-active {
@@ -364,6 +368,8 @@ html.rr-active #footer {
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    consolidateHeaders();
+
     const btn = document.createElement('button');
     btn.id = 'rr-toggle-btn';
     const updateLabel = () => {
@@ -375,8 +381,13 @@ html.rr-active #footer {
       localStorage.setItem(STORAGE_KEY, ROOT.classList.contains('rr-active') ? 'on' : 'off');
       updateLabel();
     });
-    document.body.appendChild(btn);
 
-    consolidateHeaders();
+    const userGroup = document.querySelector('.rr-header-user');
+    if (userGroup) {
+      userGroup.appendChild(btn);
+    } else {
+      btn.classList.add('rr-floating');
+      document.body.appendChild(btn);
+    }
   });
 })();
