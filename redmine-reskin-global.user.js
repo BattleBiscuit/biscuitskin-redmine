@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.1.0
+// @version      1.2.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -244,15 +244,102 @@ html.rr-active .drdn-items .rr-drdn-disabled {
 }
 
 /* Redmine's own form styling assumes a light page, so give inputs/selects
-   a dark-appropriate look wherever they show up, on any page. */
+   a dark-appropriate look wherever they show up, on any page. Issue edit
+   forms in particular use date/number fields too, not just text. */
 html.rr-active input[type="text"],
 html.rr-active input[type="search"],
 html.rr-active input[type="password"],
+html.rr-active input[type="date"],
+html.rr-active input[type="number"],
+html.rr-active input[type="email"],
+html.rr-active input[type="url"],
+html.rr-active input[type="tel"],
 html.rr-active select,
 html.rr-active textarea {
   background: var(--rr-bg) !important;
   color: var(--rr-text) !important;
   border: 1px solid var(--rr-border) !important;
+}
+html.rr-active input[type="checkbox"],
+html.rr-active input[type="radio"] {
+  accent-color: var(--rr-accent);
+}
+html.rr-active input[type="submit"],
+html.rr-active input[type="button"],
+html.rr-active button {
+  background: var(--rr-surface) !important;
+  color: var(--rr-text) !important;
+  border: 1px solid var(--rr-border) !important;
+  border-radius: 6px !important;
+}
+html.rr-active input[type="submit"]:hover,
+html.rr-active input[type="button"]:hover,
+html.rr-active button:hover {
+  background: var(--rr-bg) !important;
+}
+
+/* jQuery UI datepicker popup — date fields get datepickerFallback()'d
+   into this widget, which draws its own light-themed calendar. */
+html.rr-active .ui-datepicker {
+  background: var(--rr-surface) !important;
+  border: 1px solid var(--rr-border) !important;
+  box-shadow: var(--rr-shadow) !important;
+  color: var(--rr-text) !important;
+  padding: 8px !important;
+}
+html.rr-active .ui-datepicker-header {
+  background: none !important;
+  border: none !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .ui-datepicker-title,
+html.rr-active .ui-datepicker td,
+html.rr-active .ui-datepicker th {
+  color: var(--rr-text) !important;
+}
+html.rr-active .ui-datepicker .ui-state-default {
+  background: var(--rr-bg) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .ui-datepicker .ui-state-active,
+html.rr-active .ui-datepicker .ui-state-hover {
+  background: var(--rr-accent) !important;
+  color: var(--rr-accent-contrast) !important;
+  border-color: var(--rr-accent) !important;
+}
+html.rr-active .ui-datepicker select {
+  background: var(--rr-bg) !important;
+  color: var(--rr-text) !important;
+  border: 1px solid var(--rr-border) !important;
+}
+
+/* select2 widget (e.g. the Tags field) */
+html.rr-active .select2-container .select2-selection {
+  background: var(--rr-bg) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .select2-selection__rendered { color: var(--rr-text) !important; }
+html.rr-active .select2-selection__choice {
+  background: var(--rr-surface) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .select2-dropdown {
+  background: var(--rr-surface) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .select2-search__field {
+  background: var(--rr-bg) !important;
+  color: var(--rr-text) !important;
+  border: 1px solid var(--rr-border) !important;
+}
+html.rr-active .select2-results__option { color: var(--rr-text) !important; }
+html.rr-active .select2-results__option--highlighted {
+  background: var(--rr-accent) !important;
+  color: var(--rr-accent-contrast) !important;
 }
 
 /* ----------------------------- generic layout ----------------------------- */
