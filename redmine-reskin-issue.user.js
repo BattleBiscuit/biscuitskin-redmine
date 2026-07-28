@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.0.0
+// @version      1.1.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -37,28 +37,64 @@ html.rr-active #main-menu.tabs {
   border-bottom: 1px solid var(--rr-border) !important;
   padding: 0 20px !important;
 }
-html.rr-active #main-menu.tabs ul {
+
+/* Redmine's stock .tabs component (reused below by #history too) draws
+   its own "file folder" look — background/border/float per <li>/<a> —
+   which clashes badly with dark mode if left in place. Reset everything
+   explicitly rather than layering colors on top of it. */
+html.rr-active .tabs,
+html.rr-active .tabs ul {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+html.rr-active .tabs ul {
   display: flex !important;
+  flex-wrap: wrap !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   gap: 4px !important;
 }
-html.rr-active #main-menu.tabs a {
+html.rr-active .tabs li {
+  float: none !important;
+  list-style: none !important;
+  margin: 0 !important;
+  display: flex !important;
+}
+html.rr-active .tabs a {
   display: flex !important;
   align-items: center !important;
   padding: 9px 12px !important;
   font-size: 13px !important;
+  font-weight: 400 !important;
   color: var(--rr-muted) !important;
+  background: none !important;
+  border: none !important;
   border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
   transition: color 0.15s ease, border-color 0.15s ease;
 }
-html.rr-active #main-menu.tabs a:hover {
+html.rr-active .tabs a:hover {
   color: var(--rr-text) !important;
+  background: none !important;
   border-bottom-color: var(--rr-border) !important;
 }
-html.rr-active #main-menu.tabs a.selected {
+html.rr-active .tabs a.selected {
   color: var(--rr-text) !important;
+  background: none !important;
   border-bottom-color: var(--rr-accent) !important;
   font-weight: 600 !important;
 }
+html.rr-active .tabs-buttons button {
+  background: var(--rr-surface) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+
 html.rr-active #main-menu .menu-children {
   background: var(--rr-surface) !important;
   border: 1px solid var(--rr-border) !important;
@@ -218,24 +254,6 @@ html.rr-active #relations > p strong {
 }
 
 /* ----------------------------- history / journals ----------------------------- */
-html.rr-active #history .tabs ul {
-  display: flex !important;
-  gap: 4px !important;
-}
-html.rr-active #history .tabs a {
-  display: inline-flex !important;
-  padding: 7px 12px !important;
-  font-size: 12px !important;
-  color: var(--rr-muted) !important;
-  border-bottom: 2px solid transparent !important;
-}
-html.rr-active #history .tabs a:hover { color: var(--rr-text) !important; }
-html.rr-active #history .tabs a.selected {
-  color: var(--rr-text) !important;
-  border-bottom-color: var(--rr-accent) !important;
-  font-weight: 600 !important;
-}
-
 html.rr-active .journal {
   background: var(--rr-surface) !important;
   border: 1px solid var(--rr-border) !important;
@@ -243,16 +261,68 @@ html.rr-active .journal {
   padding: 12px 14px !important;
   margin-bottom: 10px !important;
 }
+
+/* .journal-header (an <h4>) carries browser default heading margin/weight,
+   and its two children (.journal-info with the avatar+"Von X..." text,
+   .journal-meta with the action icons + "#N" link) aren't flex-aligned by
+   Redmine's own CSS — reset the heading itself, then lay out each level. */
 html.rr-active .journal-header {
-  color: var(--rr-muted) !important;
-  font-size: 12px !important;
   display: flex !important;
   align-items: center !important;
   flex-wrap: wrap !important;
-  gap: 6px !important;
+  gap: 8px !important;
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: none !important;
+  color: var(--rr-muted) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
 }
-html.rr-active .journal-header a { color: var(--rr-text) !important; }
-html.rr-active .journal-link { color: var(--rr-muted) !important; margin-left: auto !important; }
+html.rr-active .journal-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 1 1 auto !important;
+}
+html.rr-active .journal-info .gravatar {
+  border-radius: 50% !important;
+}
+html.rr-active .journal-info a {
+  color: var(--rr-text) !important;
+  font-weight: 500 !important;
+}
+html.rr-active .journal-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+}
+html.rr-active .journal-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+}
+html.rr-active .journal-actions a,
+html.rr-active .journal-actions .drdn-trigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 3px 6px !important;
+  border-radius: 6px !important;
+  color: var(--rr-muted) !important;
+  background: none !important;
+}
+html.rr-active .journal-actions a:hover,
+html.rr-active .journal-actions .drdn-trigger:hover {
+  background: var(--rr-bg) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .journal-link {
+  color: var(--rr-muted) !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
+}
+
 html.rr-active .journal-details {
   color: var(--rr-muted) !important;
   font-size: 13px !important;
