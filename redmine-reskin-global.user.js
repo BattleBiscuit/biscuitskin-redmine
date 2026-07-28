@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.8.0
+// @version      1.9.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -612,30 +612,67 @@ html.rr-active .rr-blocked-badge {
   text-transform: uppercase !important;
   white-space: nowrap !important;
 }
-/* A <span role="button">, not a <button>: on the My Page board this sits
-   inside the card's <a>, where a nested button would be invalid markup —
-   and it also sidesteps the global button rule above. */
-html.rr-active .rr-block-btn {
+/* ---- compact card controls ----
+   The blocked toggle and the board's local-priority stepper share one box so
+   they read as a matched pair rather than two differently-sized glyphs. Both
+   are <span role="button">, not <button>: on the My Page board they sit
+   inside the card's <a>, where a nested button would be invalid markup — and
+   it also sidesteps the global button rule above.
+
+   Borderless with a hover fill, rather than a permanently outlined box: at
+   this size a border around a single character reads as cramped. */
+html.rr-active .rr-block-btn,
+html.rr-active .rr-prio-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   flex: 0 0 auto !important;
-  padding: 0 2px !important;
+  box-sizing: border-box !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  padding: 0 5px !important;
   background: none !important;
   border: none !important;
-  color: var(--rr-muted) !important;
-  font-size: 13px !important;
+  border-radius: 6px !important;
   line-height: 1 !important;
   cursor: pointer !important;
-  opacity: 0.6;
-  transition: color 0.1s ease, opacity 0.1s ease;
+  transition: background-color 0.1s ease, color 0.1s ease, opacity 0.1s ease;
+}
+
+html.rr-active .rr-block-btn {
+  color: var(--rr-muted) !important;
+  font-size: 14px !important;
+  opacity: 0.55;
 }
 html.rr-active .rr-block-btn:hover {
   color: var(--rr-blocked) !important;
+  background: var(--rr-bg) !important;
   opacity: 1;
 }
 html.rr-active .rr-block-btn.rr-on {
   color: var(--rr-blocked) !important;
+  opacity: 1;
+}
+
+/* Local priority: a faint dot while unset, a filled chip with the number
+   once set. The dot is set larger than the digit so it stays visible. */
+html.rr-active .rr-prio-btn {
+  color: var(--rr-muted) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  opacity: 0.5;
+}
+html.rr-active .rr-prio-btn:not(.rr-set) {
+  font-size: 15px !important;
+}
+html.rr-active .rr-prio-btn:hover {
+  color: var(--rr-text) !important;
+  background: var(--rr-bg) !important;
+  opacity: 1;
+}
+html.rr-active .rr-prio-btn.rr-set {
+  color: var(--rr-accent-contrast) !important;
+  background: var(--rr-accent) !important;
   opacity: 1;
 }
 

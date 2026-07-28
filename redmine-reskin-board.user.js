@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.5.0
+// @version      1.6.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -136,42 +136,23 @@ html.rr-active .rr-board-generated {
   gap: 6px;
   margin-bottom: 4px;
 }
+/* The controls themselves (.rr-prio-btn / .rr-block-btn) are a shared
+   component styled by the global theme; only their placement is board
+   business. -2px right margin pulls them flush with the card's padding
+   edge, since each control carries its own hover-fill padding. */
 .rr-card-controls {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 1px;
   margin-left: auto;
+  margin-right: -2px;
+  flex: 0 0 auto;
 }
-/* Local priority stepper. Always rendered (as a faint "·" when unset) so
-   revealing it costs no layout shift. */
-.rr-prio-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 17px;
-  height: 16px;
-  padding: 0 4px;
-  border: 1px solid var(--rr-border);
-  border-radius: 4px;
-  background: none;
-  color: var(--rr-muted);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0.55;
-  transition: opacity 0.1s ease, color 0.1s ease, border-color 0.1s ease;
-}
-.rr-prio-btn:hover {
-  opacity: 1;
-  color: var(--rr-text);
-  border-color: var(--rr-muted);
-}
-.rr-prio-btn.rr-set {
-  opacity: 1;
-  color: var(--rr-accent-contrast);
-  background: var(--rr-accent);
-  border-color: var(--rr-accent);
+/* let a long tracker name give way rather than squeezing the controls */
+.rr-card-top .rr-badge {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .rr-card-id {
   font-size: 11px;
