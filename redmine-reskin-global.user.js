@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.5.0
+// @version      1.6.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -297,36 +297,67 @@ html.rr-active .tabs-buttons button {
   color: var(--rr-text) !important;
 }
 
-/* the "+" tab's flyout menu */
-html.rr-active #main-menu .menu-children {
+/* ----- the "+" tab's flyout menu -----
+   IMPORTANT: never set 'display' on .menu-children itself. Redmine toggles
+   this menu open/closed by changing display (via toggleNewObjectDropdown),
+   possibly as an inline style — and an inline style LOSES to a stylesheet
+   !important, so forcing display here can make the menu impossible to open.
+   Only position/size/skin it, and force the stacking on the <li> children
+   instead, which Redmine never touches.
+
+   The children are made to stack defensively: flex-direction:column covers
+   the case where something makes the <ul> a flex container, while
+   display:block + width:100% + float:none on each <li> covers the inline,
+   inline-block, float and flex-item cases. width:max-content stops the menu
+   inheriting the full-width sizing of the tab row it lives in. */
+html.rr-active #main-menu ul.menu-children {
   position: absolute !important;
   top: 100% !important;
   left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
   z-index: 10000 !important;
+  width: max-content !important;
+  min-width: 190px !important;
+  max-width: none !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
   background: var(--rr-surface) !important;
   border: 1px solid var(--rr-border) !important;
+  border-radius: 8px !important;
   box-shadow: var(--rr-shadow) !important;
   list-style: none !important;
   margin: 0 !important;
   padding: 4px !important;
 }
-html.rr-active #main-menu .menu-children li {
-  list-style: none !important;
-  float: none !important;
-  margin: 0 !important;
-}
-html.rr-active #main-menu .menu-children a {
+html.rr-active #main-menu ul.menu-children > li {
   display: block !important;
+  float: none !important;
+  width: 100% !important;
+  flex: none !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: static !important;
+}
+html.rr-active #main-menu ul.menu-children > li > a {
+  display: block !important;
+  width: auto !important;
   color: var(--rr-text) !important;
   background: none !important;
   border: none !important;
   border-radius: 4px !important;
   padding: 6px 10px !important;
+  margin: 0 !important;
+  font-size: 13px !important;
   text-decoration: none !important;
   white-space: nowrap !important;
 }
-html.rr-active #main-menu .menu-children a:hover {
+html.rr-active #main-menu ul.menu-children > li > a:hover {
   background: var(--rr-bg) !important;
+  color: var(--rr-accent) !important;
 }
 
 /* Dropdown component (drdn): styles "Zu einem Projekt springen..." (present
