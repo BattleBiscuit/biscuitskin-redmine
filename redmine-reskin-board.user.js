@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.6.0
+// @version      1.7.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -566,6 +566,9 @@ html.rr-active .rr-board-generated {
       const idFromItems = items[0] && items[0].statusId;
       const idFromMap = statusIdByName && statusIdByName.get(status);
       col.dataset.statusId = idFromItems || idFromMap || '';
+      // kept so a drop can retry resolving the id by name if it was unknown
+      // at render time (see the drop handler)
+      col.dataset.statusName = status;
 
       const header = document.createElement('div');
       header.className = 'rr-board-col-header';
@@ -599,13 +602,49 @@ html.rr-active .rr-board-generated {
         cardsWrap.classList.remove('rr-drop-target');
 
         const issueId = e.dataTransfer.getData('text/plain');
-        const cardEl = document.querySelector(`.rr-card[data-issue-id="${issueId}"]`);
-        if (!cardEl) return;
+        if (!issueId) {
+          console.warn('[rr-board] drop carried no issue id');
+          return;
+        }
 
-        const toStatusId = col.dataset.statusId;
+        // Scope the lookup to the board that was dropped into. My Page shows
+        // two issue blocks ("Mir zugewiesene" and "Erstellte Tickets") and the
+        // same ticket can appear in both, so a document-wide query could
+        // return the copy in the *other* board — whose status already matches
+        // the column, so the guard below would bail out and the drag would
+        // silently do nothing.
+        const boardEl = cardsWrap.closest('.rr-board-generated');
+        const selector = `.rr-card[data-issue-id="${issueId}"]`;
+        const cardEl =
+          (boardEl && boardEl.querySelector(selector)) || document.querySelector(selector);
+        if (!cardEl) {
+          console.warn('[rr-board] no card found for issue', issueId);
+          return;
+        }
+
+        // A pinned column with no tickets has no row to take a status id from
+        // and depends on /issue_statuses.json having resolved it by name. If
+        // that request failed (or the name does not match a real status), the
+        // column has no id and dropping here cannot work — say so instead of
+        // failing silently.
+        let toStatusId = col.dataset.statusId;
+        if (!toStatusId) {
+          const resolved = (await getStatusIdByName()).get(col.dataset.statusName || '');
+          if (resolved) {
+            toStatusId = resolved;
+            col.dataset.statusId = resolved;
+          }
+        }
         const fromStatusId = cardEl.dataset.statusId;
         const fromCol = cardEl.closest('.rr-board-col');
-        if (!toStatusId || fromStatusId === toStatusId) return;
+        if (!toStatusId) {
+          alert(
+            'Diese Spalte hat keine bekannte Status-ID — der Status kann nicht geändert werden.\n' +
+              'Vermutlich stimmt der Spaltenname nicht mit einem Redmine-Status überein.'
+          );
+          return;
+        }
+        if (fromStatusId === toStatusId) return;
 
         const originalParent = cardEl.parentElement;
         const originalNext = cardEl.nextSibling;
