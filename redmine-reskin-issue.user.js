@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.13.0
+// @version      1.14.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -24,6 +24,14 @@
   // project-scoped page (project overview, wiki, issue lists), so they
   // are owned by the global theme script instead.
   const CSS = `
+/* With the reskin off, the wrappers this script adds around existing markup
+   would still alter the stock layout just by being block-level boxes.
+   display:contents makes them behave as though they were not there. */
+html:not(.rr-active) .rr-title-row,
+html:not(.rr-active) .rr-sec-body {
+  display: contents !important;
+}
+
 /* ----------------------------- action icons row ----------------------------- */
 html.rr-active #content > .contextual {
   display: flex !important;

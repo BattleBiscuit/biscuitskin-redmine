@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.10.0
+// @version      1.11.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -66,6 +66,29 @@
   right: 12px;
   z-index: 99999;
   box-shadow: var(--rr-shadow);
+}
+
+/* ----------------------------- reskin off -----------------------------
+   Everything styled below is gated behind html.rr-active, so switching off
+   reverts it. Two things do not revert by themselves and are handled here:
+
+   - Controls we inject (chips, the blocked/priority toggles) are meaningless
+     with the reskin off, since whatever they hide is visible again. Keep
+     them out of the stock layout entirely.
+   - Wrappers we add around existing markup would otherwise change the stock
+     layout just by being block-level boxes. display:contents makes them
+     behave as though they were not there. */
+html:not(.rr-active) .rr-chip,
+html:not(.rr-active) .rr-chips,
+html:not(.rr-active) .rr-block-btn,
+html:not(.rr-active) .rr-prio-btn,
+html:not(.rr-active) .rr-block-toggle,
+html:not(.rr-active) .rr-blocked-badge,
+html:not(.rr-active) .rr-board-toolbar {
+  display: none !important;
+}
+html:not(.rr-active) .rr-side-body {
+  display: contents !important;
 }
 
 /* ----------------------------- base ----------------------------- */
@@ -855,24 +878,43 @@ html.rr-active #footer {
     });
   }
 
+  // Merging the headers is a DOM move, so unlike every CSS rule here it does
+  // not undo itself when the reskin is switched off — which left the stock
+  // header malformed. Remembering the original children lets restoreHeaders()
+  // put them back, so the toggle really does return the page to stock.
+  let headerState = null;
+
   function consolidateHeaders() {
     const topMenu = document.getElementById('top-menu');
     const header = document.getElementById('header');
-    if (!topMenu || !header || topMenu.dataset.rrMerged) return;
-    topMenu.dataset.rrMerged = '1';
+    if (!topMenu || !header || headerState) return;
 
+    const originalChildren = Array.from(topMenu.children);
     const nav = document.createElement('nav');
     nav.className = 'rr-header-nav';
     const user = document.createElement('div');
     user.className = 'rr-header-user';
 
-    Array.from(topMenu.children).forEach((child) => {
+    originalChildren.forEach((child) => {
       (child.tagName === 'UL' ? nav : user).appendChild(child);
     });
 
     header.appendChild(nav);
     header.appendChild(user);
     markActiveNav(nav);
+    headerState = { topMenu, nav, user, originalChildren };
+  }
+
+  function restoreHeaders() {
+    if (!headerState) return;
+    const { topMenu, nav, user, originalChildren } = headerState;
+
+    // Re-appending in the original order restores it, since appendChild moves.
+    originalChildren.forEach((child) => topMenu.appendChild(child));
+    nav.querySelectorAll('.rr-nav-active').forEach((a) => a.classList.remove('rr-nav-active'));
+    nav.remove();
+    user.remove();
+    headerState = null;
   }
 
   // ---------------------------------------------------------------------
@@ -948,7 +990,9 @@ html.rr-active #footer {
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    consolidateHeaders();
+    // Only touch the header when the reskin is actually on, so a page loaded
+    // with it off keeps Redmine's stock two-bar header untouched.
+    if (ROOT.classList.contains('rr-active')) consolidateHeaders();
     clampTagCloud();
     collapsibleSidebar();
 
@@ -957,19 +1001,44 @@ html.rr-active #footer {
     const updateLabel = () => {
       btn.textContent = ROOT.classList.contains('rr-active') ? 'Reskin: ON' : 'Reskin: OFF';
     };
-    updateLabel();
-    btn.addEventListener('click', () => {
-      ROOT.classList.toggle('rr-active');
-      localStorage.setItem(STORAGE_KEY, ROOT.classList.contains('rr-active') ? 'on' : 'off');
-      updateLabel();
-    });
 
-    const userGroup = document.querySelector('.rr-header-user');
-    if (userGroup) {
-      userGroup.appendChild(btn);
-    } else {
+    // With the reskin on the button sits in the header's account cluster;
+    // with it off that cluster no longer exists, so it falls back to
+    // floating — the stock header has no sensible slot for it.
+    const placeToggle = () => {
+      const userGroup = document.querySelector('.rr-header-user');
+      if (ROOT.classList.contains('rr-active') && userGroup) {
+        btn.classList.remove('rr-floating');
+        userGroup.appendChild(btn);
+      } else {
+        btn.classList.add('rr-floating');
+        document.body.appendChild(btn);
+      }
+    };
+
+    btn.addEventListener('click', () => {
+      const turningOn = !ROOT.classList.contains('rr-active');
+
+      // Park the button on <body> first: it currently lives inside
+      // .rr-header-user, which restoreHeaders() removes — taking the button
+      // with it if we don't move it out beforehand.
       btn.classList.add('rr-floating');
       document.body.appendChild(btn);
-    }
+
+      if (turningOn) {
+        ROOT.classList.add('rr-active');
+        consolidateHeaders();
+      } else {
+        ROOT.classList.remove('rr-active');
+        restoreHeaders();
+      }
+
+      localStorage.setItem(STORAGE_KEY, turningOn ? 'on' : 'off');
+      updateLabel();
+      placeToggle();
+    });
+
+    updateLabel();
+    placeToggle();
   });
 })();
