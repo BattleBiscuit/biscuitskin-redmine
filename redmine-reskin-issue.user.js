@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.8.0
+// @version      1.9.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -308,8 +308,19 @@ html.rr-active .rr-journal-compact .journal-info {
   gap: 5px !important;
 }
 html.rr-active .rr-journal-compact .journal-meta { margin-left: 0 !important; }
-html.rr-active .rr-journal-compact .journal-actions { display: none !important; }
-html.rr-active .rr-journal-compact:hover .journal-actions { display: flex !important; }
+/* Fade the action icons in on hover rather than display:none -> flex.
+   Toggling display adds the element back into layout on hover, which
+   shifts everything after it — visible as a jump. visibility+opacity
+   keeps the space reserved at all times, so nothing moves. */
+html.rr-active .rr-journal-compact .journal-actions {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transition: opacity 0.1s ease !important;
+}
+html.rr-active .rr-journal-compact:hover .journal-actions {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
 html.rr-active .rr-journal-compact .journal-content {
   flex: 1 1 auto !important;
   min-width: 0 !important;

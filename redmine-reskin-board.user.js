@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.2.0
+// @version      1.3.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -96,11 +96,15 @@ html.rr-active .rr-board-generated {
   color: var(--rr-text);
   box-shadow: var(--rr-shadow);
   cursor: grab;
-  transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.1s ease;
+  transition: background-color 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease;
 }
+/* No translateY on hover: even though a transform doesn't reflow siblings,
+   the card itself visibly shifts under the cursor. Use shadow depth plus an
+   inset 1px highlight instead — static, and the inset avoids touching
+   border-color, which would otherwise clobber the priority stripe on the
+   left edge. */
 .rr-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px var(--rr-muted);
   color: var(--rr-text);
 }
 .rr-card.rr-dragging {
