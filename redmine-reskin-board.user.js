@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.8.0
+// @version      1.9.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -42,6 +42,16 @@ html.rr-active .rr-board-generated {
   background: var(--rr-bg);
   border-radius: var(--rr-radius);
   border: 1px solid var(--rr-border);
+  transition: flex-basis 0.15s ease, min-width 0.15s ease;
+}
+/* The pinned columns always render, so several are usually empty. Narrow
+   them so they cost less horizontal space while staying visible and
+   droppable — the header keeps its ellipsis and title attribute, so a
+   truncated status name is still readable on hover. Toggled by
+   refreshColumn(), so a column widens the moment a card lands in it. */
+.rr-board-col.rr-board-col-empty {
+  flex: 0 0 140px;
+  min-width: 140px;
 }
 .rr-board-col-header {
   display: flex;
@@ -431,10 +441,14 @@ html.rr-active .rr-board-generated {
       .forEach(({ el }) => cardsWrap.appendChild(el));
   }
 
-  function refreshColumnCount(col) {
+  // Keeps a column's count badge and its empty/narrow state in sync. Both
+  // derive from the same card count, so they live in one function — a drop
+  // that empties or fills a column must update both together.
+  function refreshColumn(col) {
     const count = col.querySelector(':scope > .rr-board-col-header .rr-board-col-count');
     const cards = col.querySelectorAll(':scope > .rr-board-col-cards > .rr-card');
     if (count) count.textContent = String(cards.length);
+    col.classList.toggle('rr-board-col-empty', cards.length === 0);
   }
 
   function buildCard(ticket) {
@@ -604,6 +618,7 @@ html.rr-active .rr-board-generated {
       cardsWrap.className = 'rr-board-col-cards';
       byLocalPriority(items).forEach((t) => cardsWrap.appendChild(buildCard(t)));
       col.appendChild(cardsWrap);
+      if (!items.length) col.classList.add('rr-board-col-empty');
 
       cardsWrap.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -669,8 +684,8 @@ html.rr-active .rr-board-generated {
         cardsWrap.appendChild(cardEl);
         // land it at its local-priority position rather than at the bottom
         resortColumn(cardsWrap);
-        if (fromCol) refreshColumnCount(fromCol);
-        refreshColumnCount(col);
+        if (fromCol) refreshColumn(fromCol);
+        refreshColumn(col);
         cardEl.classList.add('rr-card-pending');
 
         const result = await updateIssueStatus(issueId, toStatusId);
@@ -681,8 +696,8 @@ html.rr-active .rr-board-generated {
         } else {
           originalParent.insertBefore(cardEl, originalNext);
           resortColumn(originalParent);
-          if (fromCol) refreshColumnCount(fromCol);
-          refreshColumnCount(col);
+          if (fromCol) refreshColumn(fromCol);
+          refreshColumn(col);
           alert('Status konnte nicht geändert werden' + (result.detail ? ':\n' + result.detail : ' (Workflow-Regel?).'));
         }
       });
