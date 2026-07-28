@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.6.0
+// @version      1.7.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -552,6 +552,82 @@ html.rr-active .check_box_group label {
   color: var(--rr-text) !important;
 }
 
+/* ----------------------------- shared disclosure chip -----------------------------
+   Small pill button used wherever content is tucked away and needs a way
+   back ("+3 leere Felder", "+ alle 30 Tags"). Defined here so every
+   page-specific script can reuse it, same as the .drdn-* component. */
+html.rr-active .rr-hidden { display: none !important; }
+html.rr-active .rr-chips {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-top: 10px !important;
+}
+html.rr-active .rr-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 3px 11px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--rr-border) !important;
+  background: var(--rr-bg) !important;
+  color: var(--rr-muted) !important;
+  font-family: var(--rr-font) !important;
+  font-size: 11px !important;
+  cursor: pointer !important;
+  transition: color 0.1s ease, border-color 0.1s ease;
+}
+html.rr-active .rr-chip:hover {
+  color: var(--rr-text) !important;
+  border-color: var(--rr-muted) !important;
+}
+html.rr-active .rr-chip.rr-chip-on {
+  color: var(--rr-accent) !important;
+  border-color: var(--rr-accent) !important;
+}
+
+/* ----------------------------- sidebar -----------------------------
+   Present on all project-scoped pages. Section headings become click
+   targets that collapse their content; collapsed by default so a page
+   starts on its actual content, one click away from the navigation.
+   Session-only — nothing persisted, so every load starts minimal. */
+html.rr-active #sidebar h3 {
+  color: var(--rr-muted) !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  border-bottom: 1px solid var(--rr-border) !important;
+  padding-bottom: 6px !important;
+}
+html.rr-active #sidebar .queries a { color: var(--rr-text) !important; }
+html.rr-active #sidebar a:hover { color: var(--rr-accent) !important; }
+
+html.rr-active .rr-side-toggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  user-select: none;
+}
+html.rr-active .rr-side-toggle::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  margin-bottom: 4px;
+  border-right: 1.5px solid var(--rr-muted);
+  border-bottom: 1.5px solid var(--rr-muted);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+html.rr-active .rr-side-toggle.rr-side-closed::after {
+  transform: rotate(-45deg);
+}
+html.rr-active .rr-side-body.rr-side-closed { display: none !important; }
+html.rr-active .rr-tag-hidden { display: none !important; }
+html.rr-active .tags-cloud + .rr-chip { margin-top: 6px !important; }
+
 /* ----------------------------- generic layout ----------------------------- */
 html.rr-active #main { background: var(--rr-bg) !important; }
 html.rr-active #sidebar { background: transparent !important; }
@@ -671,8 +747,82 @@ html.rr-active #footer {
     markActiveNav(nav);
   }
 
+  // ---------------------------------------------------------------------
+  // Sidebar: turn each section heading into a collapse toggle, closed by
+  // default. Sidebar content is navigation (saved queries, taskboards,
+  // tag clouds) that is rarely needed while reading the page itself.
+  // Session-only: state lives in the DOM, so every load starts closed.
+  // ---------------------------------------------------------------------
+  function collapsibleSidebar() {
+    const wrapper = document.getElementById('sidebar-wrapper');
+    if (!wrapper) return;
+
+    wrapper.querySelectorAll('h3').forEach((heading) => {
+      if (heading.dataset.rrCollapsible) return;
+      // #watchers is handled by the issue script (it collapses the whole
+      // block when there are none) — don't fight it for the same heading.
+      if (heading.closest('#watchers')) return;
+
+      const body = document.createElement('div');
+      body.className = 'rr-side-body';
+      // Absorb everything up to the next heading. A sibling that *contains*
+      // an h3 (e.g. div.sidebar-tags) starts its own section, so stop there
+      // rather than swallowing it into this one.
+      let node = heading.nextElementSibling;
+      while (node && node.tagName !== 'H3' && !node.querySelector('h3')) {
+        const next = node.nextElementSibling;
+        body.appendChild(node);
+        node = next;
+      }
+      if (!body.childElementCount) return;
+
+      heading.dataset.rrCollapsible = '1';
+      heading.classList.add('rr-side-toggle', 'rr-side-closed');
+      body.classList.add('rr-side-closed');
+      heading.after(body);
+
+      heading.addEventListener('click', () => {
+        const closed = body.classList.toggle('rr-side-closed');
+        heading.classList.toggle('rr-side-closed', closed);
+      });
+    });
+  }
+
+  // The tag cloud can run to dozens of entries; show a handful and put the
+  // rest behind a chip.
+  function clampTagCloud() {
+    const LIMIT = 8;
+    document.querySelectorAll('.tags-cloud').forEach((cloud) => {
+      if (cloud.dataset.rrClamped) return;
+      const tags = Array.from(cloud.children).filter((el) => el.tagName === 'SPAN');
+      if (tags.length <= LIMIT) return;
+      cloud.dataset.rrClamped = '1';
+
+      const rest = tags.slice(LIMIT);
+      rest.forEach((tag) => tag.classList.add('rr-tag-hidden'));
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'rr-chip';
+      let open = false;
+      const render = () => {
+        btn.textContent = open ? '− weniger' : `+ alle ${tags.length} Tags`;
+        btn.classList.toggle('rr-chip-on', open);
+      };
+      btn.addEventListener('click', () => {
+        open = !open;
+        rest.forEach((tag) => tag.classList.toggle('rr-tag-hidden', !open));
+        render();
+      });
+      render();
+      cloud.after(btn);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     consolidateHeaders();
+    clampTagCloud();
+    collapsibleSidebar();
 
     const btn = document.createElement('button');
     btn.id = 'rr-toggle-btn';
