@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.12.0
+// @version      1.13.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -824,6 +824,112 @@ html.rr-active table.list tr.even td {
   background: transparent !important;
 }
 html.rr-active table.list tr:last-child td { border-bottom: none !important; }
+
+/* ----------------------------- formatted text (.wiki) -----------------------------
+   .wiki is Redmine's shared wrapper for all rendered text — issue
+   descriptions, journal comments, wiki pages, news, forum posts. Styling it
+   here rather than per-container is why code blocks in comments were still
+   light: the previous rules were scoped to the issue description only. */
+html.rr-active .wiki {
+  color: var(--rr-text) !important;
+}
+html.rr-active .wiki pre,
+html.rr-active .wiki code,
+html.rr-active .wiki tt {
+  background: var(--rr-bg) !important;
+  border: 1px solid var(--rr-border) !important;
+  border-radius: 6px !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .wiki code,
+html.rr-active .wiki tt {
+  padding: 1px 5px !important;
+}
+html.rr-active .wiki pre {
+  padding: 10px 12px !important;
+  overflow-x: auto !important;
+}
+/* a <code> inside a <pre> would otherwise draw a second box inside the block */
+html.rr-active .wiki pre code {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+html.rr-active .wiki blockquote {
+  border-left: 3px solid var(--rr-border) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: var(--rr-muted) !important;
+  padding: 6px 12px !important;
+  margin-left: 0 !important;
+}
+html.rr-active .wiki table,
+html.rr-active .wiki th,
+html.rr-active .wiki td {
+  border-color: var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .wiki th { background: var(--rr-bg) !important; }
+html.rr-active .wiki hr {
+  border: none !important;
+  border-top: 1px solid var(--rr-border) !important;
+}
+
+/* Syntax highlighting: Redmine ships Rouge with a light theme, whose token
+   colours are dark and therefore illegible on a dark code block. Remapped by
+   token group and scoped under .wiki pre so these very short class names
+   (.k, .s, .c ...) cannot leak anywhere else. Best-effort against Rouge's
+   default class names — easy to extend if some tokens still read wrong. */
+html.rr-active .wiki pre .c,
+html.rr-active .wiki pre .c1,
+html.rr-active .wiki pre .cm,
+html.rr-active .wiki pre .cp,
+html.rr-active .wiki pre .cs {
+  color: #7d8896 !important;
+  font-style: italic !important;
+}
+html.rr-active .wiki pre .k,
+html.rr-active .wiki pre .kc,
+html.rr-active .wiki pre .kd,
+html.rr-active .wiki pre .kn,
+html.rr-active .wiki pre .kp,
+html.rr-active .wiki pre .kr,
+html.rr-active .wiki pre .kt,
+html.rr-active .wiki pre .ow {
+  color: #c79bf0 !important;
+}
+html.rr-active .wiki pre .s,
+html.rr-active .wiki pre .s1,
+html.rr-active .wiki pre .s2,
+html.rr-active .wiki pre .sb,
+html.rr-active .wiki pre .sc,
+html.rr-active .wiki pre .sd,
+html.rr-active .wiki pre .se,
+html.rr-active .wiki pre .sh,
+html.rr-active .wiki pre .si,
+html.rr-active .wiki pre .sr,
+html.rr-active .wiki pre .ss,
+html.rr-active .wiki pre .sx {
+  color: #9dd17b !important;
+}
+html.rr-active .wiki pre .m,
+html.rr-active .wiki pre .mf,
+html.rr-active .wiki pre .mh,
+html.rr-active .wiki pre .mi,
+html.rr-active .wiki pre .mo,
+html.rr-active .wiki pre .il {
+  color: #f0a26a !important;
+}
+html.rr-active .wiki pre .nc,
+html.rr-active .wiki pre .nf,
+html.rr-active .wiki pre .nn,
+html.rr-active .wiki pre .nt {
+  color: #82aaff !important;
+}
+html.rr-active .wiki pre .na,
+html.rr-active .wiki pre .nv,
+html.rr-active .wiki pre .no {
+  color: #f0cb6b !important;
+}
 
 /* ----------------------------- footer ----------------------------- */
 html.rr-active #footer {

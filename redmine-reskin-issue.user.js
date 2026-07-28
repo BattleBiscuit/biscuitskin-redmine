@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.14.0
+// @version      1.15.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -164,13 +164,10 @@ html.rr-active .description {
 html.rr-active .description > p:first-of-type {
   display: none !important;
 }
-html.rr-active .description .wiki { color: var(--rr-text) !important; }
-html.rr-active .description .wiki pre,
-html.rr-active .description .wiki code {
-  background: var(--rr-bg) !important;
-  border: 1px solid var(--rr-border) !important;
-  color: var(--rr-text) !important;
-}
+/* .wiki content itself (text, code blocks, quotes, tables) is styled by the
+   global theme — it is Redmine's shared wrapper for rendered text and appears
+   on wiki pages, news and forums too, not just here. Scoping it to
+   .description was exactly why code blocks in comments stayed light. */
 
 /* ---- one surface for the ticket itself ----
    The details block and the description were each their own bordered card
@@ -316,7 +313,6 @@ html.rr-active .journal-details {
   font-size: 13px !important;
 }
 html.rr-active .journal-details i { color: var(--rr-text) !important; font-style: normal !important; }
-html.rr-active .journal-content .wiki { color: var(--rr-text) !important; }
 
 /* ----------------------------- edit form boxes ----------------------------- */
 html.rr-active fieldset.tabular,
