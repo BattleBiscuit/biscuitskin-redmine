@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.3.0
+// @version      1.4.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -367,4 +367,8 @@ html.rr-active fieldset.tabular legend {
 }
 `;
   GM_addStyle(CSS);
+  // See the global theme script for why: re-injecting after
+  // DOMContentLoaded guarantees we win any specificity tie against
+  // Redmine's own (later-loading) stylesheets.
+  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
 })();

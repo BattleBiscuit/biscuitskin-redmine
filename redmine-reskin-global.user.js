@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.2.0
+// @version      1.3.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -341,6 +341,50 @@ html.rr-active .select2-results__option--highlighted {
   background: var(--rr-accent) !important;
   color: var(--rr-accent-contrast) !important;
 }
+/* select2 3.x (older API, different class names entirely from the 4.x
+   ones above — the redmineup plugin bundle appears to use this version) */
+html.rr-active .select2-container .select2-choices,
+html.rr-active .select2-container .select2-choice {
+  background: var(--rr-bg) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .select2-search-choice {
+  background: var(--rr-surface) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .select2-input {
+  background: transparent !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .select2-drop,
+html.rr-active .select2-drop-active {
+  background: var(--rr-surface) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+  box-shadow: var(--rr-shadow) !important;
+}
+html.rr-active .select2-results {
+  background: none !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .select2-results .select2-highlighted {
+  background: var(--rr-accent) !important;
+  color: var(--rr-accent-contrast) !important;
+}
+
+/* Custom-field checkbox/radio groups render as a scrollable bordered box
+   (Redmine's own emulation of a multi-select), not a plain <input> — the
+   generic input rule above never reaches it. */
+html.rr-active .check_box_group {
+  background: var(--rr-bg) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+html.rr-active .check_box_group label {
+  color: var(--rr-text) !important;
+}
 
 /* ----------------------------- generic layout ----------------------------- */
 html.rr-active #main { background: var(--rr-bg) !important; }
@@ -412,6 +456,13 @@ html.rr-active #footer {
     ROOT.classList.add('rr-active');
   }
   GM_addStyle(CSS);
+  // @run-at document-start means this <style> lands in <head> before
+  // Redmine's own stylesheets do. If any of Redmine's rules also use
+  // !important, a tied specificity is resolved by DOM order — and theirs,
+  // appended later, would win. Re-injecting once DOMContentLoaded fires
+  // (Redmine's stylesheets are already in the DOM by then) guarantees our
+  // rules win any such tie, without having to keep escalating selectors.
+  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
 
   // ---------------------------------------------------------------------
   // #top-menu and #header are siblings, so a single flex row across both

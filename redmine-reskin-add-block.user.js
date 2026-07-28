@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Add-Block Dropdown
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.1.0
+// @version      1.2.0
 // @description  Replaces My Page's "Hinzufügen" block-select with a custom dropdown matching the project-jump flyout. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for the shared .drdn-* styling — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -37,6 +37,10 @@
 }
 `;
   GM_addStyle(CSS);
+  // See the global theme script for why: re-injecting after
+  // DOMContentLoaded guarantees we win any specificity tie against
+  // Redmine's own (later-loading) stylesheets.
+  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
 
   // ---------------------------------------------------------------------
   // "Hinzufügen" add-block control: replace the native <select> with a

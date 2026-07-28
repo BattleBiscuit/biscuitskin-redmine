@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: My Page Layout
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.0.0
+// @version      1.1.0
 // @description  My Page-only layout: card-styled blocks and decluttering. Only runs on /my/page, so it can never conflict with styling on other Redmine pages. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -63,4 +63,8 @@ html.rr-active body.controller-my.action-page #my-page {
 }
 `;
   GM_addStyle(CSS);
+  // See the global theme script for why: re-injecting after
+  // DOMContentLoaded guarantees we win any specificity tie against
+  // Redmine's own (later-loading) stylesheets.
+  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
 })();

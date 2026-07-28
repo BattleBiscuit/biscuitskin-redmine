@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.1.0
+// @version      1.2.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -150,6 +150,10 @@ html.rr-active .rr-board-generated {
 }
 `;
   GM_addStyle(CSS);
+  // See the global theme script for why: re-injecting after
+  // DOMContentLoaded guarantees we win any specificity tie against
+  // Redmine's own (later-loading) stylesheets.
+  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
 
   // ---------------------------------------------------------------------
   // Data extraction: read each issue table by its existing td.<field>
