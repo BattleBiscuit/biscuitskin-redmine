@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.4.0
+// @version      1.5.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -129,9 +129,49 @@ html.rr-active .rr-board-generated {
 .rr-card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* flex-start, not space-between: .rr-card-controls carries margin-left
+     auto to pin the controls right, which reads more predictably once there
+     are more than two children */
+  justify-content: flex-start;
   gap: 6px;
   margin-bottom: 4px;
+}
+.rr-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+/* Local priority stepper. Always rendered (as a faint "·" when unset) so
+   revealing it costs no layout shift. */
+.rr-prio-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--rr-border);
+  border-radius: 4px;
+  background: none;
+  color: var(--rr-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+}
+.rr-prio-btn:hover {
+  opacity: 1;
+  color: var(--rr-text);
+  border-color: var(--rr-muted);
+}
+.rr-prio-btn.rr-set {
+  opacity: 1;
+  color: var(--rr-accent-contrast);
+  background: var(--rr-accent);
+  border-color: var(--rr-accent);
 }
 .rr-card-id {
   font-size: 11px;
@@ -332,6 +372,66 @@ html.rr-active .rr-board-generated {
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Local-only priority, used to sort cards within a column. Same storage
+  // approach as the blocked flag: an id -> 1..5 map under
+  // rr-local-priority, never sent to Redmine. Higher sorts nearer the top,
+  // so "increment" and "move up" mean the same thing.
+  // ---------------------------------------------------------------------
+  const PRIO_KEY = 'rr-local-priority';
+  const PRIO_MAX = 5;
+
+  function readPriorities() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PRIO_KEY) || '{}');
+      return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function prioFrom(map, id) {
+    const value = map[String(id)];
+    return Number.isInteger(value) && value > 0 && value <= PRIO_MAX ? value : 0;
+  }
+
+  function getPriority(id) {
+    return prioFrom(readPriorities(), id);
+  }
+
+  function setPriority(id, value) {
+    const all = readPriorities();
+    if (value > 0) all[String(id)] = value;
+    else delete all[String(id)];
+    try {
+      localStorage.setItem(PRIO_KEY, JSON.stringify(all));
+    } catch (e) {
+      /* storage full or disabled — the value just won't persist */
+    }
+  }
+
+  // Descending by local priority, unset (0) last. Array.prototype.sort is
+  // stable, so tickets sharing a priority — and all the unset ones — keep
+  // the order Redmine gave them.
+  function byLocalPriority(tickets) {
+    const map = readPriorities();
+    return tickets
+      .map((ticket, index) => ({ ticket, index }))
+      .sort((a, b) => prioFrom(map, b.ticket.id) - prioFrom(map, a.ticket.id) || a.index - b.index)
+      .map((entry) => entry.ticket);
+  }
+
+  // Reorder the cards already in a column rather than rebuilding the board,
+  // so toggling a priority doesn't flash the whole view.
+  function resortColumn(cardsWrap) {
+    if (!cardsWrap) return;
+    const map = readPriorities();
+    Array.from(cardsWrap.querySelectorAll(':scope > .rr-card'))
+      .map((el, index) => ({ el, index, prio: prioFrom(map, el.dataset.issueId) }))
+      .sort((a, b) => b.prio - a.prio || a.index - b.index)
+      .forEach(({ el }) => cardsWrap.appendChild(el));
+  }
+
   function refreshColumnCount(col) {
     const count = col.querySelector(':scope > .rr-board-col-header .rr-board-col-count');
     const cards = col.querySelectorAll(':scope > .rr-board-col-cards > .rr-card');
@@ -383,14 +483,58 @@ html.rr-active .rr-board-generated {
     }
     card.appendChild(meta);
 
-    // A span rather than a button: this lives inside the card's <a>, where a
+    // Spans rather than buttons: these live inside the card's <a>, where a
     // nested button would be invalid markup.
+    const controls = document.createElement('span');
+    controls.className = 'rr-card-controls';
+    top.appendChild(controls);
+
+    // --- local priority stepper ---
+    // One control instead of separate up/down buttons, to keep the card top
+    // uncluttered: click raises (wrapping back to unset past the maximum),
+    // shift-click lowers.
+    const prioBtn = document.createElement('span');
+    prioBtn.className = 'rr-prio-btn';
+    prioBtn.setAttribute('role', 'button');
+    prioBtn.tabIndex = 0;
+    controls.appendChild(prioBtn);
+
+    const syncPriority = () => {
+      const value = getPriority(ticket.id);
+      prioBtn.textContent = value > 0 ? String(value) : '·';
+      prioBtn.classList.toggle('rr-set', value > 0);
+      prioBtn.dataset.prio = String(value);
+      prioBtn.title =
+        (value > 0 ? `Lokale Priorität ${value} von ${PRIO_MAX}` : 'Keine lokale Priorität') +
+        ' — Klick erhöht, Shift+Klick verringert (nur lokal gespeichert, sortiert die Spalte)';
+    };
+
+    const stepPriority = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const current = getPriority(ticket.id);
+      const next = e.shiftKey
+        ? Math.max(current - 1, 0)
+        : current >= PRIO_MAX
+          ? 0
+          : current + 1;
+      setPriority(ticket.id, next);
+      syncPriority();
+      resortColumn(card.parentElement);
+    };
+    prioBtn.addEventListener('click', stepPriority);
+    prioBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') stepPriority(e);
+    });
+    syncPriority();
+
+    // --- blocked marker ---
     const blockBtn = document.createElement('span');
     blockBtn.className = 'rr-block-btn';
     blockBtn.setAttribute('role', 'button');
     blockBtn.tabIndex = 0;
     blockBtn.textContent = '⊘';
-    top.appendChild(blockBtn);
+    controls.appendChild(blockBtn);
 
     const syncBlocked = () => {
       const on = readBlocked().has(String(ticket.id));
@@ -456,7 +600,7 @@ html.rr-active .rr-board-generated {
 
       const cardsWrap = document.createElement('div');
       cardsWrap.className = 'rr-board-col-cards';
-      items.forEach((t) => cardsWrap.appendChild(buildCard(t)));
+      byLocalPriority(items).forEach((t) => cardsWrap.appendChild(buildCard(t)));
       col.appendChild(cardsWrap);
 
       cardsWrap.addEventListener('dragover', (e) => {
@@ -485,6 +629,8 @@ html.rr-active .rr-board-generated {
         const originalParent = cardEl.parentElement;
         const originalNext = cardEl.nextSibling;
         cardsWrap.appendChild(cardEl);
+        // land it at its local-priority position rather than at the bottom
+        resortColumn(cardsWrap);
         if (fromCol) refreshColumnCount(fromCol);
         refreshColumnCount(col);
         cardEl.classList.add('rr-card-pending');
@@ -496,6 +642,7 @@ html.rr-active .rr-board-generated {
           cardEl.dataset.statusId = toStatusId;
         } else {
           originalParent.insertBefore(cardEl, originalNext);
+          resortColumn(originalParent);
           if (fromCol) refreshColumnCount(fromCol);
           refreshColumnCount(col);
           alert('Status konnte nicht geändert werden' + (result.detail ? ':\n' + result.detail : ' (Workflow-Regel?).'));
