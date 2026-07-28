@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.12.0
+// @version      1.13.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -47,7 +47,19 @@ html.rr-active #content > .contextual > span.drdn > .drdn-trigger:hover {
   color: var(--rr-text) !important;
 }
 
-/* ----------------------------- title + status badge ----------------------------- */
+/* ----------------------------- title + status badge -----------------------------
+   The title, the status badge and our blocked toggle are moved into a flex
+   row by JS; Redmine leaves them as inline-level siblings, which leaves
+   anything sitting beside a large heading baseline-aligned and too low. */
+html.rr-active .rr-title-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+html.rr-active .rr-title-row h2 {
+  margin: 0 !important;
+}
 html.rr-active #content h2.inline-block {
   color: var(--rr-text) !important;
   margin-bottom: 0 !important;
@@ -588,31 +600,62 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
     }
   }
 
+  // Redmine leaves the title (h2.inline-block) and the status badge as
+  // inline-level siblings, so anything added beside them is baseline-aligned
+  // against a large heading and sits noticeably low. Wrapping the three in a
+  // flex row aligns them properly instead of patching with vertical-align.
+  function buildTitleRow() {
+    const title = document.querySelector('#content h2.inline-block');
+    if (!title) return null;
+    if (title.parentElement.classList.contains('rr-title-row')) {
+      return title.parentElement;
+    }
+
+    const row = document.createElement('div');
+    row.className = 'rr-title-row';
+    title.insertAdjacentElement('beforebegin', row);
+    row.appendChild(title);
+
+    // absorb the status badge(s) Redmine renders straight after the title
+    let node = row.nextElementSibling;
+    while (node && node.classList.contains('badge')) {
+      const next = node.nextElementSibling;
+      row.appendChild(node);
+      node = next;
+    }
+    return row;
+  }
+
   function addBlockedControl() {
     // /issues/5626, /issues/5626?tab=notes, ... — but not /issues/new
     const match = location.pathname.match(/\/issues\/(\d+)/);
     if (!match) return;
     const id = match[1];
 
-    const title = document.querySelector('#content h2.inline-block');
-    if (!title || title.dataset.rrBlockCtl) return;
-    title.dataset.rrBlockCtl = '1';
+    const row = buildTitleRow();
+    if (!row || row.dataset.rrBlockCtl) return;
+    row.dataset.rrBlockCtl = '1';
 
-    const badge = document.createElement('span');
-    badge.className = 'rr-blocked-badge';
-    badge.textContent = 'Blockiert';
-
+    // One self-describing control rather than an icon plus a separate state
+    // pill: it is a quiet glyph while unset and grows its own label once set.
     const btn = document.createElement('span');
-    btn.className = 'rr-block-btn';
+    btn.className = 'rr-block-toggle';
     btn.setAttribute('role', 'button');
     btn.tabIndex = 0;
-    btn.textContent = '⊘';
+
+    const glyph = document.createElement('span');
+    glyph.textContent = '⊘';
+    const label = document.createElement('span');
+    label.className = 'rr-block-label';
+    label.textContent = 'Blockiert';
+    btn.appendChild(glyph);
+    btn.appendChild(label);
 
     const details = document.querySelector('#content div.issue.details');
     const sync = () => {
       const on = readBlocked().has(id);
-      badge.style.display = on ? 'inline-flex' : 'none';
       btn.classList.toggle('rr-on', on);
+      label.style.display = on ? '' : 'none';
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.title = on
         ? 'Blockierung entfernen (nur lokal gespeichert)'
@@ -630,13 +673,7 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
       if (e.key === 'Enter' || e.key === ' ') toggle(e);
     });
 
-    // Sit next to the status badge Redmine already renders after the title.
-    const statusBadge =
-      title.nextElementSibling && title.nextElementSibling.classList.contains('badge')
-        ? title.nextElementSibling
-        : title;
-    statusBadge.insertAdjacentElement('afterend', btn);
-    statusBadge.insertAdjacentElement('afterend', badge);
+    row.appendChild(btn);
     sync();
   }
 

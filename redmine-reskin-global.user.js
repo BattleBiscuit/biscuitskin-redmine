@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.9.0
+// @version      1.10.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -652,6 +652,44 @@ html.rr-active .rr-block-btn:hover {
 html.rr-active .rr-block-btn.rr-on {
   color: var(--rr-blocked) !important;
   opacity: 1;
+}
+
+/* Labelled variant, for places with room for one self-describing control
+   (the issue view) instead of a separate icon plus state pill: quiet glyph
+   while unset, red pill carrying its own label once set. One element, so
+   there is nothing to duplicate. */
+html.rr-active .rr-block-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  flex: 0 0 auto !important;
+  padding: 0 4px !important;
+  border: 1px solid transparent !important;
+  border-radius: 999px !important;
+  background: none !important;
+  color: var(--rr-muted) !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  cursor: pointer !important;
+  opacity: 0.55;
+  transition: background-color 0.1s ease, color 0.1s ease, opacity 0.1s ease;
+}
+html.rr-active .rr-block-toggle:hover {
+  color: var(--rr-blocked) !important;
+  opacity: 1;
+}
+html.rr-active .rr-block-toggle.rr-on {
+  padding: 1px 10px !important;
+  background: var(--rr-blocked-soft) !important;
+  border-color: var(--rr-blocked-line) !important;
+  color: var(--rr-blocked) !important;
+  opacity: 1;
+}
+html.rr-active .rr-block-toggle .rr-block-label {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
 }
 
 /* Local priority: a faint dot while unset, a filled chip with the number
