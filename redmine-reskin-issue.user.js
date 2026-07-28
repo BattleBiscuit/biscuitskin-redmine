@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.6.0
+// @version      1.7.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -15,129 +15,15 @@
   'use strict';
 
   // Everything here targets elements that only exist on an issue's own
-  // page (breadcrumb h1, project tab bar, attributes grid, description,
-  // history/journals) — @match already scopes this to /issues/*, so none
-  // of it can collide with My Page or any other view.
+  // page (attributes grid, description, history/journals, edit form) —
+  // @match already scopes this to /issues/*, so none of it can collide
+  // with My Page or any other view.
+  //
+  // NOTE: the project tab bar (#main-menu), the shared .tabs component,
+  // and the header breadcrumbs are NOT here — they appear on every
+  // project-scoped page (project overview, wiki, issue lists), so they
+  // are owned by the global theme script instead.
   const CSS = `
-/* ----------------------------- project breadcrumb + tabs -----------------------------
-   #main-menu (Übersicht/Tickets/Wiki/...) sits below the consolidated
-   header (built by the global script) on every project-scoped page; here
-   it just gets the same "big underline tab" treatment as the main nav. */
-html.rr-active #header h1 .breadcrumbs {
-  color: var(--rr-muted) !important;
-  font-weight: 400 !important;
-}
-html.rr-active #header h1 .breadcrumbs a { color: var(--rr-muted) !important; }
-html.rr-active #header h1 .current-project {
-  color: var(--rr-text) !important;
-}
-
-html.rr-active #main-menu.tabs {
-  background: var(--rr-surface) !important;
-  border-bottom: 1px solid var(--rr-border) !important;
-  padding: 0 20px !important;
-}
-
-/* Redmine's stock .tabs component (reused below by #history too) draws
-   its own "file folder" look — background/border/float per <li>/<a> —
-   which clashes badly with dark mode if left in place. Reset everything
-   explicitly rather than layering colors on top of it. Scoped to direct
-   children only (.tabs > ul, not .tabs ul): the "+" tab nests its own
-   .menu-children <ul> dropdown inside the same <li>, and a descendant
-   selector would force that dropdown permanently open via display:flex. */
-html.rr-active .tabs,
-html.rr-active .tabs > ul {
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-html.rr-active .tabs > ul {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  gap: 4px !important;
-}
-html.rr-active .tabs > ul > li {
-  /* no display:flex here on purpose: the parent ul is already flex, so
-     each li is automatically a flex item without needing to be a flex
-     container itself. The "+" tab nests its own .menu-children dropdown
-     inside this li — making the li a flex container turns the dropdown
-     into a flex item alongside the "+" link, laying it out sideways. */
-  float: none !important;
-  list-style: none !important;
-  margin: 0 !important;
-  position: relative !important;
-}
-html.rr-active .tabs > ul > li > a {
-  display: flex !important;
-  align-items: center !important;
-  padding: 9px 12px !important;
-  font-size: 13px !important;
-  font-weight: 400 !important;
-  color: var(--rr-muted) !important;
-  background: none !important;
-  border: none !important;
-  border-bottom: 2px solid transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  text-decoration: none !important;
-  white-space: nowrap !important;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-html.rr-active .tabs > ul > li > a:hover {
-  color: var(--rr-text) !important;
-  background: none !important;
-  border-bottom-color: var(--rr-border) !important;
-}
-html.rr-active .tabs > ul > li > a.selected {
-  color: var(--rr-text) !important;
-  background: none !important;
-  border-bottom-color: var(--rr-accent) !important;
-  font-weight: 600 !important;
-}
-html.rr-active .tabs-buttons button {
-  background: var(--rr-surface) !important;
-  border: 1px solid var(--rr-border) !important;
-  color: var(--rr-text) !important;
-}
-
-html.rr-active #main-menu .menu-children {
-  /* the "+" tab's <li> is a flex container (rule above); without an
-     explicit position this dropdown becomes a flex item and lays out
-     sideways next to the "+" instead of appearing below it. */
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  z-index: 10000 !important;
-  background: var(--rr-surface) !important;
-  border: 1px solid var(--rr-border) !important;
-  box-shadow: var(--rr-shadow) !important;
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 4px !important;
-}
-html.rr-active #main-menu .menu-children li {
-  list-style: none !important;
-  float: none !important;
-  margin: 0 !important;
-}
-html.rr-active #main-menu .menu-children a {
-  display: block !important;
-  color: var(--rr-text) !important;
-  background: none !important;
-  border: none !important;
-  border-bottom: none !important;
-  border-radius: 4px !important;
-  padding: 6px 10px !important;
-  text-decoration: none !important;
-  white-space: nowrap !important;
-}
-html.rr-active #main-menu .menu-children a:hover {
-  background: var(--rr-bg) !important;
-}
-
 /* ----------------------------- sidebar content ----------------------------- */
 html.rr-active #sidebar h3 {
   color: var(--rr-muted) !important;

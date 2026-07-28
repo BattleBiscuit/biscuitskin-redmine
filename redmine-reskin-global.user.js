@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.3.0
+// @version      1.4.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -96,10 +96,12 @@ html.rr-active #header {
   border-bottom: 1px solid var(--rr-border) !important;
   box-shadow: none !important;
   padding: 0 20px !important;
-  min-height: 52px !important;
   display: flex !important;
+  flex-wrap: wrap !important;
   align-items: stretch !important;
-  gap: 28px !important;
+  /* row-gap 0: the project tab bar becomes a second row (see #main-menu
+     below) and must sit flush against the first, not 28px below it. */
+  gap: 0 28px !important;
 }
 html.rr-active #header h1 {
   color: var(--rr-text) !important;
@@ -110,7 +112,15 @@ html.rr-active #header h1 {
   order: 1;
   display: flex !important;
   align-items: center !important;
+  /* sets the height of the header's first row */
+  min-height: 52px !important;
 }
+html.rr-active #header h1 .breadcrumbs {
+  color: var(--rr-muted) !important;
+  font-weight: 400 !important;
+}
+html.rr-active #header h1 .breadcrumbs a { color: var(--rr-muted) !important; }
+html.rr-active #header h1 .current-project { color: var(--rr-text) !important; }
 
 /* primary nav: big, full-height tabs, underlined on hover/active */
 html.rr-active .rr-header-nav {
@@ -193,6 +203,119 @@ html.rr-active .rr-header-user a {
 }
 html.rr-active .rr-header-user a:hover { color: var(--rr-accent) !important; }
 html.rr-active .rr-header-user #loggedas { color: var(--rr-muted) !important; }
+
+/* ----------------------------- project tab bar -----------------------------
+   #main-menu (Übersicht/Tickets/Wiki/...) is present inside #header on every
+   project-scoped page — project overview, issue lists, wiki, and a single
+   issue. Since #header is a flex row, #main-menu without an explicit order
+   defaults to order:0, i.e. AHEAD of the brand(1)/nav(2)/search(3)/user(4),
+   where it consumes the whole row and pushes the actual nav off-screen.
+   Give it a high order and full-width basis so it wraps onto its own second
+   row beneath them. Negative side margins cancel #header's padding so its
+   divider spans the full width. */
+html.rr-active #main-menu {
+  order: 5 !important;
+  flex: 1 0 100% !important;
+  margin: 0 -20px !important;
+  padding: 0 20px !important;
+  border-top: 1px solid var(--rr-border) !important;
+  background: none !important;
+}
+
+/* Redmine's stock .tabs component — used by #main-menu here and by the
+   issue page's #history tabs — draws its own "file folder" look
+   (background/border/float per li/a) that clashes with dark mode. Reset it
+   explicitly rather than layering colors on top. Direct-child combinators
+   only: the "+" tab nests a .menu-children <ul> inside its <li>, and
+   descendant selectors would restyle that dropdown as a tab row. */
+html.rr-active .tabs,
+html.rr-active .tabs > ul {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+html.rr-active .tabs > ul {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 4px !important;
+}
+html.rr-active .tabs > ul > li {
+  /* deliberately NOT display:flex — the parent ul is already flex, so each
+     li is a flex item automatically. Making the li a flex container turns
+     the "+" tab's nested dropdown into a flex item beside the "+" link,
+     laying the menu out sideways. */
+  float: none !important;
+  list-style: none !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+html.rr-active .tabs > ul > li > a {
+  display: flex !important;
+  align-items: center !important;
+  padding: 9px 12px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--rr-muted) !important;
+  background: none !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+html.rr-active .tabs > ul > li > a:hover {
+  color: var(--rr-text) !important;
+  background: none !important;
+  border-bottom-color: var(--rr-border) !important;
+}
+html.rr-active .tabs > ul > li > a.selected {
+  color: var(--rr-text) !important;
+  background: none !important;
+  border-bottom-color: var(--rr-accent) !important;
+  font-weight: 600 !important;
+}
+html.rr-active .tabs-buttons button {
+  background: var(--rr-surface) !important;
+  border: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+}
+
+/* the "+" tab's flyout menu */
+html.rr-active #main-menu .menu-children {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  z-index: 10000 !important;
+  background: var(--rr-surface) !important;
+  border: 1px solid var(--rr-border) !important;
+  box-shadow: var(--rr-shadow) !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 4px !important;
+}
+html.rr-active #main-menu .menu-children li {
+  list-style: none !important;
+  float: none !important;
+  margin: 0 !important;
+}
+html.rr-active #main-menu .menu-children a {
+  display: block !important;
+  color: var(--rr-text) !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 6px 10px !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+html.rr-active #main-menu .menu-children a:hover {
+  background: var(--rr-bg) !important;
+}
 
 /* Dropdown component (drdn): styles "Zu einem Projekt springen..." (present
    in the header on every page) and is reused as-is by the separate
