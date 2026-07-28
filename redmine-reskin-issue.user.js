@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.1.0
+// @version      1.2.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -41,14 +41,17 @@ html.rr-active #main-menu.tabs {
 /* Redmine's stock .tabs component (reused below by #history too) draws
    its own "file folder" look — background/border/float per <li>/<a> —
    which clashes badly with dark mode if left in place. Reset everything
-   explicitly rather than layering colors on top of it. */
+   explicitly rather than layering colors on top of it. Scoped to direct
+   children only (.tabs > ul, not .tabs ul): the "+" tab nests its own
+   .menu-children <ul> dropdown inside the same <li>, and a descendant
+   selector would force that dropdown permanently open via display:flex. */
 html.rr-active .tabs,
-html.rr-active .tabs ul {
+html.rr-active .tabs > ul {
   background: none !important;
   border: none !important;
   box-shadow: none !important;
 }
-html.rr-active .tabs ul {
+html.rr-active .tabs > ul {
   display: flex !important;
   flex-wrap: wrap !important;
   list-style: none !important;
@@ -56,13 +59,13 @@ html.rr-active .tabs ul {
   padding: 0 !important;
   gap: 4px !important;
 }
-html.rr-active .tabs li {
+html.rr-active .tabs > ul > li {
   float: none !important;
   list-style: none !important;
   margin: 0 !important;
   display: flex !important;
 }
-html.rr-active .tabs a {
+html.rr-active .tabs > ul > li > a {
   display: flex !important;
   align-items: center !important;
   padding: 9px 12px !important;
@@ -78,12 +81,12 @@ html.rr-active .tabs a {
   white-space: nowrap !important;
   transition: color 0.15s ease, border-color 0.15s ease;
 }
-html.rr-active .tabs a:hover {
+html.rr-active .tabs > ul > li > a:hover {
   color: var(--rr-text) !important;
   background: none !important;
   border-bottom-color: var(--rr-border) !important;
 }
-html.rr-active .tabs a.selected {
+html.rr-active .tabs > ul > li > a.selected {
   color: var(--rr-text) !important;
   background: none !important;
   border-bottom-color: var(--rr-accent) !important;
