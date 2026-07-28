@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.10.0
+// @version      1.11.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -187,6 +187,33 @@ html.rr-active #relations > p strong {
   letter-spacing: 0.03em !important;
   font-weight: 600 !important;
 }
+
+/* ---- collapsible sections (subtasks / related tickets) ----
+   Collapsed by default; the heading is the click target and keeps its count
+   badge visible so the section still reports what is inside while closed.
+   Session-only, like every other toggle here. */
+html.rr-active .rr-sec-toggle {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  user-select: none;
+}
+html.rr-active .rr-sec-toggle::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--rr-muted);
+  border-bottom: 1.5px solid var(--rr-muted);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+html.rr-active .rr-sec-toggle.rr-sec-closed::after {
+  transform: rotate(-45deg);
+}
+html.rr-active .rr-sec-body.rr-sec-closed { display: none !important; }
+html.rr-active .rr-sec-toggle .issues-stat { color: var(--rr-muted) !important; }
 
 /* ----------------------------- history / journals ----------------------------- */
 html.rr-active .journal {
@@ -526,6 +553,42 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
     }
   }
 
+  // Subtasks and related tickets collapse under their own heading, closed by
+  // default — they are reference material, not the point of the page. Skips
+  // sections already reduced to a one-liner by collapseEmptySections(), and
+  // leaves the heading (with its count badge) plus the add-link outside the
+  // collapsed body so both stay usable while closed.
+  function collapsibleSections() {
+    ['issue_tree', 'relations'].forEach((id) => {
+      const section = document.getElementById(id);
+      if (!section) return;
+      if (section.classList.contains('rr-section-empty')) return;
+      if (section.dataset.rrCollapsible) return;
+
+      const heading = section.querySelector(':scope > p');
+      if (!heading) return;
+
+      const body = document.createElement('div');
+      body.className = 'rr-sec-body rr-sec-closed';
+      let node = heading.nextElementSibling;
+      while (node) {
+        const next = node.nextElementSibling;
+        body.appendChild(node);
+        node = next;
+      }
+      if (!body.childElementCount) return;
+
+      section.dataset.rrCollapsible = '1';
+      heading.classList.add('rr-sec-toggle', 'rr-sec-closed');
+      heading.after(body);
+
+      heading.addEventListener('click', () => {
+        const closed = body.classList.toggle('rr-sec-closed');
+        heading.classList.toggle('rr-sec-closed', closed);
+      });
+    });
+  }
+
   // The details block and the description describe the same object, so they
   // read as one card rather than two. Done here instead of with :has() so a
   // ticket without a description keeps its closed, rounded bottom edge.
@@ -556,6 +619,9 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
     compactJournals();
     dedupeActionRows();
     collapseEmptySections();
+    // must run after collapseEmptySections(), which marks the sections that
+    // should stay as a one-liner instead of becoming collapsible
+    collapsibleSections();
     weldTicketCard();
 
     // Redmine swaps the history tabs (Historie / Notizen / Eigenschafts-
