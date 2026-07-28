@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.5.0
+// @version      1.6.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -60,10 +60,14 @@ html.rr-active .tabs > ul {
   gap: 4px !important;
 }
 html.rr-active .tabs > ul > li {
+  /* no display:flex here on purpose: the parent ul is already flex, so
+     each li is automatically a flex item without needing to be a flex
+     container itself. The "+" tab nests its own .menu-children dropdown
+     inside this li — making the li a flex container turns the dropdown
+     into a flex item alongside the "+" link, laying it out sideways. */
   float: none !important;
   list-style: none !important;
   margin: 0 !important;
-  display: flex !important;
   position: relative !important;
 }
 html.rr-active .tabs > ul > li > a {
@@ -214,19 +218,10 @@ html.rr-active div.issue.details .subject a {
 }
 
 /* Condensed title bar that replaces the subject once you scroll past it
-   (sticky-issue-header Stimulus controller) — a separate fixed element
-   from the .subject above, so none of the rules above reach it. */
+   (sticky-issue-header Stimulus controller). Theming it didn't turn out
+   well — simplest fix is to just not show it. */
 html.rr-active #sticky-issue-header {
-  background: var(--rr-surface) !important;
-  border-bottom: 1px solid var(--rr-border) !important;
-  color: var(--rr-text) !important;
-  box-shadow: var(--rr-shadow) !important;
-}
-html.rr-active #sticky-issue-header .issue-heading {
-  color: var(--rr-muted) !important;
-}
-html.rr-active #sticky-issue-header .subject {
-  color: var(--rr-text) !important;
+  display: none !important;
 }
 
 html.rr-active p.author {
