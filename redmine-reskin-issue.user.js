@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.9.0
+// @version      1.10.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -139,11 +139,10 @@ html.rr-active .description {
   padding: 16px !important;
   margin-top: 14px !important;
 }
-html.rr-active .description > p > strong {
-  color: var(--rr-muted) !important;
-  font-size: 12px !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.03em !important;
+/* The "Beschreibung" heading is redundant — it is the ticket's main body
+   text, sitting directly under the title; its position already says so. */
+html.rr-active .description > p:first-of-type {
+  display: none !important;
 }
 html.rr-active .description .wiki { color: var(--rr-text) !important; }
 html.rr-active .description .wiki pre,
@@ -153,16 +152,40 @@ html.rr-active .description .wiki code {
   color: var(--rr-text) !important;
 }
 
-/* hr dividers between description/subtasks/relations sections */
-html.rr-active #content hr {
-  border: none !important;
-  border-top: 1px solid var(--rr-border) !important;
-  margin: 18px 0 !important;
+/* ---- one surface for the ticket itself ----
+   The details block and the description were each their own bordered card
+   AND had Redmine's <hr> rules between them — three separations doing the
+   job of one. Weld them into a single card (details = upper half,
+   description = lower half, one hairline at the seam) and drop the rules.
+   The weld classes are applied by JS, not :has(), so that a ticket with no
+   description keeps a properly closed and rounded bottom edge. */
+html.rr-active #content hr { display: none !important; }
+
+html.rr-active div.issue.details.rr-weld-top {
+  border-bottom: none !important;
+  border-radius: var(--rr-radius) var(--rr-radius) 0 0 !important;
+  margin-bottom: 0 !important;
+  box-shadow: none !important;
+}
+html.rr-active .description.rr-weld-bottom {
+  border-radius: 0 0 var(--rr-radius) var(--rr-radius) !important;
+  margin-top: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Subtasks and relations sit flat under that card — separated by space
+   rather than another border, since they are clearly their own sections. */
+html.rr-active #issue_tree,
+html.rr-active #relations {
+  margin-top: 22px !important;
 }
 html.rr-active #issue_tree > p strong,
 html.rr-active #relations > p strong {
-  color: var(--rr-text) !important;
-  font-size: 13px !important;
+  color: var(--rr-muted) !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  font-weight: 600 !important;
 }
 
 /* ----------------------------- history / journals ----------------------------- */
@@ -503,6 +526,19 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
     }
   }
 
+  // The details block and the description describe the same object, so they
+  // read as one card rather than two. Done here instead of with :has() so a
+  // ticket without a description keeps its closed, rounded bottom edge.
+  function weldTicketCard() {
+    const details = document.querySelector('#content div.issue.details');
+    if (!details) return;
+    let node = details.nextElementSibling;
+    while (node && node.tagName === 'HR') node = node.nextElementSibling;
+    if (!node || !node.classList.contains('description')) return;
+    details.classList.add('rr-weld-top');
+    node.classList.add('rr-weld-bottom');
+  }
+
   function markEmpty(section) {
     if (section.dataset.rrEmptyMarked) return;
     section.dataset.rrEmptyMarked = '1';
@@ -520,6 +556,7 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
     compactJournals();
     dedupeActionRows();
     collapseEmptySections();
+    weldTicketCard();
 
     // Redmine swaps the history tabs (Historie / Notizen / Eigenschafts-
     // änderungen) in via AJAX, so re-run the journal pass on replacement.
