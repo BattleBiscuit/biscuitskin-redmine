@@ -1,27 +1,32 @@
 // ==UserScript==
-// @name         Redmine Reskin: Core Theme
+// @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
 // @version      1.0.0
-// @description  Dark theme, consolidated header/nav, and shared component styling for redmine.re-in.de. Other Redmine Reskin scripts (board, add-block) build on top of this — install it first.
+// @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
 // @grant        GM_addStyle
 // @run-at       document-start
-// @updateURL    https://raw.githubusercontent.com/BattleBiscuit/biscuitskin-redmine/main/redmine-reskin-core.user.js
-// @downloadURL  https://raw.githubusercontent.com/BattleBiscuit/biscuitskin-redmine/main/redmine-reskin-core.user.js
+// @updateURL    https://raw.githubusercontent.com/BattleBiscuit/biscuitskin-redmine/main/redmine-reskin-global.user.js
+// @downloadURL  https://raw.githubusercontent.com/BattleBiscuit/biscuitskin-redmine/main/redmine-reskin-global.user.js
 // ==/UserScript==
 
 (function () {
   'use strict';
 
   // ---------------------------------------------------------------------
-  // CSS — organized by region. Tweak variables in :root first; most
-  // changes should be possible without touching the rules below them.
+  // Only rules for elements present on EVERY Redmine page live here:
+  // header/top-menu/footer chrome, generic layout containers (#main,
+  // #sidebar, #content), generic form controls, and the shared dropdown
+  // component. Anything specific to one page (My Page's boxes, the
+  // board, the add-block control) lives in its own separately-matched
+  // script, so a page-specific bug can't affect pages that don't use it.
+  //
   // Everything except the toggle button itself is gated behind
   // html.rr-active, so flipping that one class fully reverts to stock
-  // Redmine for A/B comparison. Other Redmine Reskin scripts (board,
-  // add-block) rely on these --rr-* variables and on html.rr-active
-  // being set — this script owns both.
+  // Redmine for A/B comparison. Page-specific scripts rely on these
+  // --rr-* variables and on html.rr-active being set — this script owns
+  // both.
   // ---------------------------------------------------------------------
   const CSS = `
 :root {
@@ -74,10 +79,10 @@ html.rr-active select option {
 }
 
 /* ----------------------------- consolidated header -----------------------------
-   #top-menu and #header used to be two stacked bars. consolidateHeaders()
-   (JS below) splits #top-menu's content into a nav group (next to the
-   brand, full-height tabs) and a user group (account, pushed right past
-   search) inside #header; #top-menu itself is just hidden here. */
+   #top-menu and #header used to be two stacked bars, on every page.
+   consolidateHeaders() (JS below) splits #top-menu's content into a nav
+   group (next to the brand, full-height tabs) and a user group (account,
+   pushed right past search) inside #header; #top-menu itself is hidden. */
 html.rr-active #top-menu {
   display: none !important;
 }
@@ -185,10 +190,10 @@ html.rr-active .rr-header-user a {
 html.rr-active .rr-header-user a:hover { color: var(--rr-accent) !important; }
 html.rr-active .rr-header-user #loggedas { color: var(--rr-muted) !important; }
 
-/* Dropdown component (drdn): styles "Zu einem Projekt springen..." and is
-   reused as-is by the separate add-block script's custom "Hinzufügen"
-   dropdown, so both look and behave identically without duplicating CSS —
-   one pill trigger, one floating list panel. */
+/* Dropdown component (drdn): styles "Zu einem Projekt springen..." (present
+   in the header on every page) and is reused as-is by the separate
+   add-block script's custom "Hinzufügen" dropdown (My Page only), so both
+   look and behave identically without duplicating CSS. */
 html.rr-active .drdn-trigger {
   display: inline-flex !important;
   align-items: center !important;
@@ -235,7 +240,7 @@ html.rr-active .drdn-items .rr-drdn-disabled {
 }
 
 /* Redmine's own form styling assumes a light page, so give inputs/selects
-   a dark-appropriate look wherever they show up (settings panels etc.) */
+   a dark-appropriate look wherever they show up, on any page. */
 html.rr-active input[type="text"],
 html.rr-active input[type="search"],
 html.rr-active input[type="password"],
@@ -246,7 +251,7 @@ html.rr-active textarea {
   border: 1px solid var(--rr-border) !important;
 }
 
-/* ----------------------------- layout ----------------------------- */
+/* ----------------------------- generic layout ----------------------------- */
 html.rr-active #main { background: var(--rr-bg) !important; }
 html.rr-active #sidebar { background: transparent !important; }
 html.rr-active #content {
@@ -254,10 +259,8 @@ html.rr-active #content {
   border: none !important;
   box-shadow: none !important;
 }
-/* Redmine draws a dashed border on the sortable drop-target columns
-   (#list-top/-left/-right) and on the scrollable table wrapper — neither
-   is meaningful once the board script replaces the table view. */
-html.rr-active .block-receiver,
+/* Redmine draws a dashed border around scrollable table wrappers on many
+   pages (issue lists, etc.) — never meaningful for our reskin. */
 html.rr-active .autoscroll {
   border: none !important;
 }
@@ -268,49 +271,9 @@ html.rr-active #content h2 {
   margin-bottom: 16px !important;
 }
 
-/* Decluttering: things that add no value once you're already on My Page.
-   Scoped to body.controller-my.action-page so it doesn't strip headings
-   or sidebars from other Redmine pages that reuse these same ids. */
-html.rr-active body.controller-my.action-page #content > h2 {
-  display: none !important;
-}
-html.rr-active body.controller-my.action-page #sidebar {
-  display: none !important;
-}
-
-/* "Hinzufügen" add-block control container: the add-block script hides
-   the native form and builds its own dropdown, but this positioning is
-   generic layout, not specific to that script, so it lives here. The h2
-   that used to clear this float is gone, so clear it here instead. */
-html.rr-active body.controller-my.action-page #content > .contextual {
-  float: right;
-  margin-bottom: 14px;
-}
-html.rr-active body.controller-my.action-page #my-page {
-  clear: both;
-}
-
-/* ----------------------------- my-page boxes ----------------------------- */
-html.rr-active .mypage-box {
-  background: var(--rr-surface) !important;
-  border: 1px solid var(--rr-border) !important;
-  border-radius: var(--rr-radius) !important;
-  box-shadow: var(--rr-shadow) !important;
-  padding: 16px !important;
-  margin-bottom: 16px !important;
-}
-html.rr-active .mypage-box h3 {
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  color: var(--rr-text) !important;
-  border-bottom: 1px solid var(--rr-border) !important;
-  padding-bottom: 8px !important;
-  margin-bottom: 12px !important;
-}
-html.rr-active .mypage-box h3 a { color: var(--rr-text) !important; }
-
-/* ----------------------------- tables (fallback for blocks the board
-   script doesn't touch, e.g. news/documents/calendar) ----------------------------- */
+/* ----------------------------- generic tables -----------------------------
+   table.list is Redmine's shared list-table class, used on issue lists,
+   project lists, etc. across many pages — not just My Page. */
 html.rr-active table.list {
   border: none !important;
   border-collapse: separate !important;
@@ -349,7 +312,7 @@ html.rr-active #footer {
 
   // ---------------------------------------------------------------------
   // Toggle: a single class on <html> gates every rule above (and every
-  // rule in the board/add-block scripts too), so switching it here flips
+  // rule in the page-specific scripts too), so switching it here flips
   // the whole reskin at once without any cross-script messaging needed.
   // ---------------------------------------------------------------------
   const ROOT = document.documentElement;
@@ -365,6 +328,7 @@ html.rr-active #footer {
   // group (the <ul> of links, styled as big tabs next to the brand) and a
   // user group (account + logged-in-as, pushed right past search), both
   // appended into #header once; #header's own flex rules lay them out.
+  // Runs on every page since #top-menu/#header exist on every page.
   // ---------------------------------------------------------------------
   function markActiveNav(nav) {
     const here = location.pathname;
