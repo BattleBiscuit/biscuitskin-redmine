@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.3.0
+// @version      1.4.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -106,6 +106,18 @@ html.rr-active .rr-board-generated {
 .rr-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px var(--rr-muted);
   color: var(--rr-text);
+}
+/* Locally-marked-blocked cards get a ring plus the badge. The ring is an
+   inset shadow rather than border-color so the left edge keeps showing the
+   priority colour. The badge itself is hidden unless the card is blocked, so
+   it occupies no space on a normal card. */
+.rr-card .rr-blocked-badge { display: none !important; }
+.rr-card.rr-blocked .rr-blocked-badge { display: inline-flex !important; }
+.rr-card.rr-blocked {
+  box-shadow: inset 0 0 0 1px var(--rr-blocked), var(--rr-shadow);
+}
+.rr-card.rr-blocked:hover {
+  box-shadow: inset 0 0 0 1px var(--rr-blocked), 0 4px 12px rgba(0, 0, 0, 0.45);
 }
 .rr-card.rr-dragging {
   opacity: 0.4;
@@ -291,6 +303,35 @@ html.rr-active .rr-board-generated {
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Local-only "blocked" flag. Never sent to Redmine — it is your own
+  // annotation, kept in localStorage under rr-blocked-issues as a JSON
+  // array of issue ids. The issue-view script carries its own copy of
+  // these helpers: userscripts run in isolated scopes, so JS cannot be
+  // shared between them (only the CSS, via the document).
+  // ---------------------------------------------------------------------
+  const BLOCKED_KEY = 'rr-blocked-issues';
+
+  function readBlocked() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(BLOCKED_KEY) || '[]');
+      return new Set((Array.isArray(raw) ? raw : []).map(String));
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function setBlocked(id, on) {
+    const set = readBlocked();
+    if (on) set.add(String(id));
+    else set.delete(String(id));
+    try {
+      localStorage.setItem(BLOCKED_KEY, JSON.stringify([...set]));
+    } catch (e) {
+      /* storage full or disabled — the marker just won't persist */
+    }
+  }
+
   function refreshColumnCount(col) {
     const count = col.querySelector(':scope > .rr-board-col-header .rr-board-col-count');
     const cards = col.querySelectorAll(':scope > .rr-board-col-cards > .rr-card');
@@ -329,6 +370,10 @@ html.rr-active .rr-board-generated {
 
     const meta = document.createElement('div');
     meta.className = 'rr-card-meta';
+    const blockedBadge = document.createElement('span');
+    blockedBadge.className = 'rr-blocked-badge';
+    blockedBadge.textContent = 'Blockiert';
+    meta.appendChild(blockedBadge);
     if (ticket.project) meta.appendChild(badge(ticket.project));
     if (ticket.assignedTo) {
       const assignee = document.createElement('span');
@@ -337,6 +382,39 @@ html.rr-active .rr-board-generated {
       meta.appendChild(assignee);
     }
     card.appendChild(meta);
+
+    // A span rather than a button: this lives inside the card's <a>, where a
+    // nested button would be invalid markup.
+    const blockBtn = document.createElement('span');
+    blockBtn.className = 'rr-block-btn';
+    blockBtn.setAttribute('role', 'button');
+    blockBtn.tabIndex = 0;
+    blockBtn.textContent = '⊘';
+    top.appendChild(blockBtn);
+
+    const syncBlocked = () => {
+      const on = readBlocked().has(String(ticket.id));
+      card.classList.toggle('rr-blocked', on);
+      blockBtn.classList.toggle('rr-on', on);
+      blockBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      blockBtn.title = on
+        ? 'Blockierung entfernen (nur lokal gespeichert)'
+        : 'Als blockiert markieren (nur lokal gespeichert)';
+    };
+
+    const toggle = (e) => {
+      // The card is an <a>; without preventDefault the click navigates to
+      // the ticket instead of toggling.
+      e.preventDefault();
+      e.stopPropagation();
+      setBlocked(ticket.id, !readBlocked().has(String(ticket.id)));
+      syncBlocked();
+    };
+    blockBtn.addEventListener('click', toggle);
+    blockBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') toggle(e);
+    });
+    syncBlocked();
 
     return card;
   }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.7.0
+// @version      1.8.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -40,6 +40,9 @@
   --rr-radius: 10px;
   --rr-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.35);
   --rr-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --rr-blocked: hsl(8, 78%, 60%);
+  --rr-blocked-soft: hsla(8, 78%, 60%, 0.15);
+  --rr-blocked-line: hsla(8, 78%, 60%, 0.5);
 }
 
 /* Toggle button (dev aid, not part of the "design"). Lives inline in the
@@ -584,6 +587,56 @@ html.rr-active .rr-chip:hover {
 html.rr-active .rr-chip.rr-chip-on {
   color: var(--rr-accent) !important;
   border-color: var(--rr-accent) !important;
+}
+
+/* ----------------------------- "blocked" marker -----------------------------
+   A purely local annotation: which tickets you consider blocked is kept in
+   localStorage, never sent to Redmine. Shared styling lives here so the My
+   Page board and the issue view render the same marker.
+
+   NB: the read/write helpers cannot be shared — userscripts run in isolated
+   scopes, so each script that needs the state carries its own copy. Only the
+   CSS is genuinely shared, via the document. The storage key is
+   "rr-blocked-issues": a JSON array of issue ids as strings. */
+html.rr-active .rr-blocked-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 1px 8px !important;
+  border-radius: 999px !important;
+  background: var(--rr-blocked-soft) !important;
+  color: var(--rr-blocked) !important;
+  border: 1px solid var(--rr-blocked-line) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+/* A <span role="button">, not a <button>: on the My Page board this sits
+   inside the card's <a>, where a nested button would be invalid markup —
+   and it also sidesteps the global button rule above. */
+html.rr-active .rr-block-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  padding: 0 2px !important;
+  background: none !important;
+  border: none !important;
+  color: var(--rr-muted) !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  opacity: 0.6;
+  transition: color 0.1s ease, opacity 0.1s ease;
+}
+html.rr-active .rr-block-btn:hover {
+  color: var(--rr-blocked) !important;
+  opacity: 1;
+}
+html.rr-active .rr-block-btn.rr-on {
+  color: var(--rr-blocked) !important;
+  opacity: 1;
 }
 
 /* ----------------------------- sidebar -----------------------------

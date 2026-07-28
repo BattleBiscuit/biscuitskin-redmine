@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.11.0
+// @version      1.12.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -214,6 +214,12 @@ html.rr-active .rr-sec-toggle.rr-sec-closed::after {
 }
 html.rr-active .rr-sec-body.rr-sec-closed { display: none !important; }
 html.rr-active .rr-sec-toggle .issues-stat { color: var(--rr-muted) !important; }
+
+/* locally-marked-blocked ticket: ring the details card, matching the board */
+html.rr-active div.issue.details.rr-blocked {
+  border-color: var(--rr-blocked-line) !important;
+  box-shadow: inset 0 0 0 1px var(--rr-blocked) !important;
+}
 
 /* ----------------------------- history / journals ----------------------------- */
 html.rr-active .journal {
@@ -553,6 +559,87 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Local-only "blocked" flag, mirroring the My Page board. Stored in
+  // localStorage under rr-blocked-issues, never sent to Redmine. These
+  // helpers are duplicated from the board script on purpose: userscripts
+  // run in isolated scopes, so JS cannot be shared between them — only the
+  // CSS is, via the document.
+  // ---------------------------------------------------------------------
+  const BLOCKED_KEY = 'rr-blocked-issues';
+
+  function readBlocked() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(BLOCKED_KEY) || '[]');
+      return new Set((Array.isArray(raw) ? raw : []).map(String));
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function setBlocked(id, on) {
+    const set = readBlocked();
+    if (on) set.add(String(id));
+    else set.delete(String(id));
+    try {
+      localStorage.setItem(BLOCKED_KEY, JSON.stringify([...set]));
+    } catch (e) {
+      /* storage full or disabled — the marker just won't persist */
+    }
+  }
+
+  function addBlockedControl() {
+    // /issues/5626, /issues/5626?tab=notes, ... — but not /issues/new
+    const match = location.pathname.match(/\/issues\/(\d+)/);
+    if (!match) return;
+    const id = match[1];
+
+    const title = document.querySelector('#content h2.inline-block');
+    if (!title || title.dataset.rrBlockCtl) return;
+    title.dataset.rrBlockCtl = '1';
+
+    const badge = document.createElement('span');
+    badge.className = 'rr-blocked-badge';
+    badge.textContent = 'Blockiert';
+
+    const btn = document.createElement('span');
+    btn.className = 'rr-block-btn';
+    btn.setAttribute('role', 'button');
+    btn.tabIndex = 0;
+    btn.textContent = '⊘';
+
+    const details = document.querySelector('#content div.issue.details');
+    const sync = () => {
+      const on = readBlocked().has(id);
+      badge.style.display = on ? 'inline-flex' : 'none';
+      btn.classList.toggle('rr-on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.title = on
+        ? 'Blockierung entfernen (nur lokal gespeichert)'
+        : 'Als blockiert markieren (nur lokal gespeichert)';
+      if (details) details.classList.toggle('rr-blocked', on);
+    };
+
+    const toggle = (e) => {
+      e.preventDefault();
+      setBlocked(id, !readBlocked().has(id));
+      sync();
+    };
+    btn.addEventListener('click', toggle);
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') toggle(e);
+    });
+
+    // Sit next to the status badge Redmine already renders after the title.
+    const statusBadge =
+      title.nextElementSibling && title.nextElementSibling.classList.contains('badge')
+        ? title.nextElementSibling
+        : title;
+    statusBadge.insertAdjacentElement('afterend', btn);
+    statusBadge.insertAdjacentElement('afterend', badge);
+    sync();
+  }
+
   // Subtasks and related tickets collapse under their own heading, closed by
   // default — they are reference material, not the point of the page. Skips
   // sections already reduced to a one-liner by collapseEmptySections(), and
@@ -623,6 +710,7 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
     // should stay as a one-liner instead of becoming collapsible
     collapsibleSections();
     weldTicketCard();
+    addBlockedControl();
 
     // Redmine swaps the history tabs (Historie / Notizen / Eigenschafts-
     // änderungen) in via AJAX, so re-run the journal pass on replacement.
