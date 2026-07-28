@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.4.0
+// @version      1.5.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -64,6 +64,7 @@ html.rr-active .tabs > ul > li {
   list-style: none !important;
   margin: 0 !important;
   display: flex !important;
+  position: relative !important;
 }
 html.rr-active .tabs > ul > li > a {
   display: flex !important;
@@ -99,6 +100,13 @@ html.rr-active .tabs-buttons button {
 }
 
 html.rr-active #main-menu .menu-children {
+  /* the "+" tab's <li> is a flex container (rule above); without an
+     explicit position this dropdown becomes a flex item and lays out
+     sideways next to the "+" instead of appearing below it. */
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  z-index: 10000 !important;
   background: var(--rr-surface) !important;
   border: 1px solid var(--rr-border) !important;
   box-shadow: var(--rr-shadow) !important;
@@ -204,6 +212,23 @@ html.rr-active div.issue.details .subject p {
 html.rr-active div.issue.details .subject a {
   color: var(--rr-accent) !important;
 }
+
+/* Condensed title bar that replaces the subject once you scroll past it
+   (sticky-issue-header Stimulus controller) — a separate fixed element
+   from the .subject above, so none of the rules above reach it. */
+html.rr-active #sticky-issue-header {
+  background: var(--rr-surface) !important;
+  border-bottom: 1px solid var(--rr-border) !important;
+  color: var(--rr-text) !important;
+  box-shadow: var(--rr-shadow) !important;
+}
+html.rr-active #sticky-issue-header .issue-heading {
+  color: var(--rr-muted) !important;
+}
+html.rr-active #sticky-issue-header .subject {
+  color: var(--rr-text) !important;
+}
+
 html.rr-active p.author {
   color: var(--rr-muted) !important;
   font-size: 12px !important;
