@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Agile Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.1.0
+// @version      1.2.0
 // @description  Dark, decluttered agile board: quiet cards with details behind a toggle, sticky column headers, styled swimlanes. Runs on both the project boards (/<project>/agile/board) and the cross-project board (/agile/board). Requires "Redmine Reskin: Global Theme".
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/agile/board*
@@ -328,10 +328,24 @@ html.rr-active .rr-board-toolbar {
   margin: 0 0 10px !important;
 }
 `;
+  // Tampermonkey's @run-at document-start can land after the document has
+  // already finished parsing, and a DOMContentLoaded listener registered at
+  // that point never fires — leaving this script's styles and enhancements
+  // silently missing. See the global theme script for the full note. Running
+  // immediately when the DOM is already parsed makes both timings behave the
+  // same.
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+
   GM_addStyle(CSS);
-  // See the global theme script: re-injecting after DOMContentLoaded puts
+  // See the global theme script: re-injecting once the document is ready puts
   // our rules after Redmine's own stylesheets so ties resolve our way.
-  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
+  onReady(() => GM_addStyle(CSS));
 
   const ROOT = document.documentElement;
 
@@ -379,7 +393,7 @@ html.rr-active .rr-board-toolbar {
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  onReady(() => {
     preserveColumnColors();
     addDetailToggle();
 

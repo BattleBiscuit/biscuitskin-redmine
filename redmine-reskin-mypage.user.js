@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: My Page Layout
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.2.0
+// @version      1.3.0
 // @description  My Page-only layout: card-styled blocks and decluttering. Only runs on /my/page, so it can never conflict with styling on other Redmine pages. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -89,11 +89,25 @@ html.rr-active body.controller-my.action-page #my-page {
   clear: both;
 }
 `;
+  // Tampermonkey's @run-at document-start can land after the document has
+  // already finished parsing, and a DOMContentLoaded listener registered at
+  // that point never fires — leaving this script's styles and enhancements
+  // silently missing. See the global theme script for the full note. Running
+  // immediately when the DOM is already parsed makes both timings behave the
+  // same.
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+
   GM_addStyle(CSS);
-  // See the global theme script for why: re-injecting after
-  // DOMContentLoaded guarantees we win any specificity tie against
+  // See the global theme script for why: re-injecting once the document
+  // is ready guarantees we win any specificity tie against
   // Redmine's own (later-loading) stylesheets.
-  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
+  onReady(() => GM_addStyle(CSS));
 
   // Only issue-list blocks become boards, so only they can lose their card
   // and heading and still make sense. Anything else on My Page (news,
@@ -107,7 +121,7 @@ html.rr-active body.controller-my.action-page #my-page {
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  onReady(() => {
     markNonBoardBlocks();
     // Redmine replaces a block's markup over AJAX (adding a block, saving
     // column settings), so re-check when that happens.

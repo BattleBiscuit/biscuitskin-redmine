@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Global Theme
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.13.0
+// @version      1.15.0
 // @description  Dark theme, consolidated header/nav, and shared component styling that applies on every redmine.re-in.de page. Page-specific scripts (My Page layout, Kanban board, add-block dropdown) build on top of this — install it first.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/*
@@ -318,7 +318,7 @@ html.rr-active .tabs > ul > li > a.selected {
   font-weight: 600 !important;
 }
 html.rr-active .tabs-buttons button {
-  background: var(--rr-surface) !important;
+  background-color: var(--rr-surface) !important;
   border: 1px solid var(--rr-border) !important;
   color: var(--rr-text) !important;
 }
@@ -455,11 +455,23 @@ html.rr-active textarea {
 html.rr-active input[type="checkbox"],
 html.rr-active input[type="radio"] {
   accent-color: var(--rr-accent);
+  /* accent-color only paints the CHECKED state; the unchecked box would be
+     left to color-scheme:dark — except Redmine's blanket rule
+     "input { background-color:#fff; border:1px solid #ccc }" overpaints the
+     native control, so it stays a white square on the dark form. Clearing
+     both hands the control back to the browser's dark rendering. */
+  background-color: transparent !important;
+  border: none !important;
 }
+/* background-COLOR, never the "background" shorthand: the shorthand also
+   resets background-image, and with !important it beats the per-button
+   "background-image: url(...)" rules that Redmine uses to give a button its
+   icon (the whole wiki toolbar works this way). Setting only the colour
+   leaves those icons intact. */
 html.rr-active input[type="submit"],
 html.rr-active input[type="button"],
 html.rr-active button {
-  background: var(--rr-surface) !important;
+  background-color: var(--rr-surface) !important;
   color: var(--rr-text) !important;
   border: 1px solid var(--rr-border) !important;
   border-radius: 6px !important;
@@ -467,7 +479,104 @@ html.rr-active button {
 html.rr-active input[type="submit"]:hover,
 html.rr-active input[type="button"]:hover,
 html.rr-active button:hover {
-  background: var(--rr-bg) !important;
+  background-color: var(--rr-bg) !important;
+}
+
+/* ----------------------------- wiki text editor (jsToolBar) -----------------------------
+   Redmine wraps every textile field — issue notes, wiki pages, news, forum
+   posts — in a jsToolBar: a tab strip (Bearbeiten / Vorschau) whose last tab
+   holds the formatting buttons, over the textarea and a preview pane.
+   Everything here is stock markup that only lines up with stock metrics. */
+
+/* The tab strip is a fixed 2.6em box with overflow:hidden, containing an
+   absolutely-positioned ul pinned to bottom:0. Once .tabs > ul is flex (see
+   the shared .tabs reset above) the links no longer land inside that clip
+   window, so Bearbeiten/Vorschau are cropped away entirely and the preview
+   becomes unreachable. Make the strip an ordinary flow row instead. */
+html.rr-active .jstTabs.tabs {
+  height: auto !important;
+  overflow: visible !important;
+  width: auto !important;
+  padding-right: 0 !important;
+  margin-bottom: 6px !important;
+}
+html.rr-active .jstTabs.tabs > ul {
+  position: static !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  width: auto !important;
+  padding-left: 0 !important;
+  border-bottom: none !important;
+}
+html.rr-active .jstTabs.tabs > ul > li {
+  height: auto !important;
+  margin-bottom: 0 !important;
+}
+/* jstoolbar.css bottom-aligns each tab with an inline-block ::before of
+   height:100%; in a flex row that is just a phantom column. */
+html.rr-active .jstTabs.tabs > ul > li::before {
+  content: none !important;
+}
+
+/* The toolbar icons are Tabler SVGs carrying stroke="currentColor", loaded
+   as background-images. A background-image is its own document, so
+   currentColor never inherits from the page — it resolves to black, which
+   is invisible on a dark button. invert(1) flips those strokes to white.
+   The filter applies to the whole element, so the button must paint nothing
+   else of its own; hence the transparent background and border. It also
+   turns .jstb_pre::before's hardcoded #333 into a readable light grey,
+   which is why that one text-labelled button needs no rule of its own. */
+html.rr-active .jstElements button {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  opacity: 1 !important;
+  filter: invert(1);
+}
+/* Pre-inverted so it lands on --rr-border (#cec8bd inverts to #313742) —
+   the hover fill is painted by the same element the filter applies to, so
+   it cannot be written as the variable directly. */
+html.rr-active .jstElements button:hover {
+  background-color: #cec8bd !important;
+}
+/* The help link's icon is a light-on-transparent PNG that reads as a smudge
+   here, and the link text alone already says what it does. */
+html.rr-active .jstElements .help a {
+  background-image: none !important;
+  padding-left: 0 !important;
+  color: var(--rr-muted) !important;
+}
+
+html.rr-active .wiki-preview {
+  background-color: var(--rr-bg) !important;
+  border: 1px solid var(--rr-border) !important;
+  border-radius: var(--rr-radius) !important;
+  color: var(--rr-text) !important;
+  padding: 10px !important;
+}
+html.rr-active .wiki-preview p.empty-preview {
+  color: var(--rr-muted) !important;
+}
+
+/* grid popup behind the "insert table" button */
+html.rr-active .table-generator {
+  background-color: var(--rr-surface) !important;
+}
+html.rr-active .table-generator td {
+  background-color: var(--rr-bg) !important;
+  border: 2px solid var(--rr-border) !important;
+}
+html.rr-active .table-generator td.selected-cell,
+html.rr-active .table-generator td:hover {
+  background-color: var(--rr-accent) !important;
+}
+
+/* Redmine leaves <legend> at its stock #333, unreadable on a dark card.
+   Kept at low specificity so fieldset-specific rules still win. */
+html.rr-active legend {
+  color: var(--rr-text) !important;
+  font-weight: 600 !important;
+  padding: 0 6px !important;
 }
 
 /* jQuery UI datepicker popup — date fields get datepickerFallback()'d
@@ -947,14 +1056,35 @@ html.rr-active #footer {
   if (localStorage.getItem(STORAGE_KEY) !== 'off') {
     ROOT.classList.add('rr-active');
   }
+
+  // @run-at document-start is best-effort, not a guarantee: Tampermonkey
+  // injects granted scripts over the extension messaging path, and on a
+  // cached or otherwise fast load that can arrive after parsing has already
+  // finished. A DOMContentLoaded listener registered at that point never
+  // fires at all — and because the class above and the first GM_addStyle
+  // run unconditionally, the failure is silent and partial: the page turns
+  // dark, then loses the tie-break stylesheet, the merged header and the
+  // toggle button. Running straight away when the DOM is already parsed
+  // makes the outcome identical either way.
+  //
+  // Used for every deferred step in this script, and mirrored in each
+  // page-specific script for the same reason.
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+
   GM_addStyle(CSS);
   // @run-at document-start means this <style> lands in <head> before
   // Redmine's own stylesheets do. If any of Redmine's rules also use
   // !important, a tied specificity is resolved by DOM order — and theirs,
-  // appended later, would win. Re-injecting once DOMContentLoaded fires
+  // appended later, would win. Re-injecting once the document is ready
   // (Redmine's stylesheets are already in the DOM by then) guarantees our
   // rules win any such tie, without having to keep escalating selectors.
-  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
+  onReady(() => GM_addStyle(CSS));
 
   // ---------------------------------------------------------------------
   // #top-menu and #header are siblings, so a single flex row across both
@@ -1088,7 +1218,7 @@ html.rr-active #footer {
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  onReady(() => {
     // Only touch the header when the reskin is actually on, so a page loaded
     // with it off keeps Redmine's stock two-bar header untouched.
     if (ROOT.classList.contains('rr-active')) consolidateHeaders();

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.15.0
+// @version      1.16.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -453,11 +453,25 @@ html.rr-active .rr-empty-note {
 html.rr-active .rr-section-empty form,
 html.rr-active .rr-section-empty .issues-stat { display: none !important; }
 `;
+  // Tampermonkey's @run-at document-start can land after the document has
+  // already finished parsing, and a DOMContentLoaded listener registered at
+  // that point never fires — leaving this script's styles and enhancements
+  // silently missing. See the global theme script for the full note. Running
+  // immediately when the DOM is already parsed makes both timings behave the
+  // same.
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+
   GM_addStyle(CSS);
-  // See the global theme script for why: re-injecting after
-  // DOMContentLoaded guarantees we win any specificity tie against
+  // See the global theme script for why: re-injecting once the document
+  // is ready guarantees we win any specificity tie against
   // Redmine's own (later-loading) stylesheets.
-  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
+  onReady(() => GM_addStyle(CSS));
 
   // ---------------------------------------------------------------------
   // Progressive disclosure. Every toggle below is session-only: state
@@ -742,7 +756,7 @@ html.rr-active .rr-section-empty .issues-stat { display: none !important; }
     (label.tagName === 'H3' ? label : label.parentElement).after(note);
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  onReady(() => {
     enhanceAttributes();
     compactJournals();
     dedupeActionRows();

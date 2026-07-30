@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Add-Block Dropdown
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.2.0
+// @version      1.3.0
 // @description  Replaces My Page's "Hinzufügen" block-select with a custom dropdown matching the project-jump flyout. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for the shared .drdn-* styling — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -36,11 +36,25 @@
   display: block;
 }
 `;
+  // Tampermonkey's @run-at document-start can land after the document has
+  // already finished parsing, and a DOMContentLoaded listener registered at
+  // that point never fires — leaving this script's styles and enhancements
+  // silently missing. See the global theme script for the full note. Running
+  // immediately when the DOM is already parsed makes both timings behave the
+  // same.
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+
   GM_addStyle(CSS);
-  // See the global theme script for why: re-injecting after
-  // DOMContentLoaded guarantees we win any specificity tie against
+  // See the global theme script for why: re-injecting once the document
+  // is ready guarantees we win any specificity tie against
   // Redmine's own (later-loading) stylesheets.
-  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
+  onReady(() => GM_addStyle(CSS));
 
   // ---------------------------------------------------------------------
   // "Hinzufügen" add-block control: replace the native <select> with a
@@ -116,7 +130,7 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  onReady(() => {
     buildAddBlockDropdown();
     setupBlockSelectObserver();
   });

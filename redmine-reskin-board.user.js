@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Kanban Board
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.9.0
+// @version      1.10.0
 // @description  Replaces My Page's ticket tables with a drag-and-drop status board. Only runs on /my/page. Requires "Redmine Reskin: Global Theme" for colors/toggle — visuals will be unstyled without it.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/my/page*
@@ -214,11 +214,25 @@ html.rr-active .rr-board-generated {
   white-space: nowrap;
 }
 `;
+  // Tampermonkey's @run-at document-start can land after the document has
+  // already finished parsing, and a DOMContentLoaded listener registered at
+  // that point never fires — leaving this script's styles and enhancements
+  // silently missing. See the global theme script for the full note. Running
+  // immediately when the DOM is already parsed makes both timings behave the
+  // same.
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+
   GM_addStyle(CSS);
-  // See the global theme script for why: re-injecting after
-  // DOMContentLoaded guarantees we win any specificity tie against
+  // See the global theme script for why: re-injecting once the document
+  // is ready guarantees we win any specificity tie against
   // Redmine's own (later-loading) stylesheets.
-  document.addEventListener('DOMContentLoaded', () => GM_addStyle(CSS));
+  onReady(() => GM_addStyle(CSS));
 
   // ---------------------------------------------------------------------
   // Data extraction: read each issue table by its existing td.<field>
@@ -743,5 +757,5 @@ html.rr-active .rr-board-generated {
     });
   }
 
-  document.addEventListener('DOMContentLoaded', initBoards);
+  onReady(initBoards);
 })();
