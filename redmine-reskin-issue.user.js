@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: Issue View
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.16.0
+// @version      1.17.0
 // @description  Card-styled ticket view (attributes, description, history) matching the My Page design. Only runs on /issues/*. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/*
@@ -123,19 +123,71 @@ html.rr-active p.author {
   font-size: 12px !important;
 }
 
-/* attributes grid: label muted, value prominent */
-html.rr-active .attributes .attribute {
-  padding: 4px 0 !important;
+/* ---- attributes: labelled pairs ----
+   Redmine floats each label into a fixed-width gutter with the value beside
+   it, split across two .splitcontent columns — metrics tuned for its own
+   full-width layout. Inside our narrower card that gutter squeezes the
+   longer German labels (Zugewiesen an, Voraussichtlicher Aufwand, custom
+   fields) down to an ellipsis or out of sight, leaving bare values with no
+   clue what they are.
+   So: flatten the split wrappers into one responsive grid and stack each
+   pair, label above value. The label then always has the full column width
+   to itself, and its position makes the pairing unambiguous even when
+   values wrap onto several lines. Scoped to the details card so the edit
+   form — which reuses .attribute markup for its inputs — is untouched. */
+html.rr-active div.issue.details .attributes {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+  gap: 10px 18px !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
-html.rr-active .attributes .attribute .label {
+/* display:contents, not a width reset: it takes the stock two-column
+   wrappers out of layout entirely, so the .attribute elements inside them
+   become direct grid items of the row above. */
+html.rr-active div.issue.details .splitcontent,
+html.rr-active div.issue.details .splitcontentleft,
+html.rr-active div.issue.details .splitcontentright {
+  display: contents !important;
+}
+html.rr-active div.issue.details .attribute {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+  /* grid items default to min-width:auto, which lets a long unbroken value
+     (a URL in a custom field) push its column wider than the card */
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+html.rr-active div.issue.details .attribute > .label {
+  /* undo the floated gutter: float, its negative margin and its fixed
+     width are all what clipped the label in the first place */
+  float: none !important;
+  display: block !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
   color: var(--rr-muted) !important;
-  font-size: 12px !important;
-  display: inline-block !important;
-  min-width: 130px !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
-html.rr-active .attributes .attribute .value {
+html.rr-active div.issue.details .attribute > .value {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-width: 0 !important;
   color: var(--rr-text) !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
+  overflow-wrap: anywhere !important;
 }
 html.rr-active table.progress {
   background: var(--rr-bg) !important;
@@ -344,9 +396,12 @@ html.rr-active fieldset.tabular legend {
    empty value -> rr-attr-empty, else custom field -> rr-attr-custom,
    else always visible. Both hidden buckets are revealed by chips.
    (.rr-chip / .rr-chips / .rr-hidden are shared components owned by the
-   global theme script.) */
-html.rr-active .rr-attr-empty.rr-collapsed,
-html.rr-active .rr-attr-custom.rr-collapsed {
+   global theme script.)
+   Both selectors carry the details-card scope of the attribute layout rules
+   above; without it the layout's display:flex outweighs this rule (equal
+   !important, higher specificity) and a collapsed bucket stays visible. */
+html.rr-active div.issue.details .attribute.rr-attr-empty.rr-collapsed,
+html.rr-active div.issue.details .attribute.rr-attr-custom.rr-collapsed {
   display: none !important;
 }
 
