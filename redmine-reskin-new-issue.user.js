@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Redmine Reskin: New Ticket Form
 // @namespace    https://github.com/BattleBiscuit/biscuitskin-redmine
-// @version      1.0.0
+// @version      1.0.1
 // @description  Card-styled ticket creation form: label-above-field grid, the four fields that matter up front, everything optional tucked away, sticky Anlegen bar. Runs on the new-issue and copy-issue forms. Requires "Redmine Reskin: Global Theme" for colors/toggle.
 // @author       Benjamin Seidel
 // @match        https://redmine.re-in.de/issues/new*
@@ -140,10 +140,19 @@ html.rr-active #issue-form textarea {
   box-sizing: border-box !important;
   width: 100% !important;
   max-width: 100% !important;
+  /* height, not just padding: Redmine pins a fixed height on its form
+     controls, and under border-box the padding below then eats inward out of
+     that fixed box rather than growing it — which crops the text inside, worst
+     of all in the larger subject field. Clearing the height lets each control
+     size to its own content, with a floor so the small ones still have a
+     comfortable hit area. */
+  height: auto !important;
+  min-height: 34px !important;
   padding: 6px 8px !important;
   border-radius: 6px !important;
   font-family: var(--rr-font) !important;
   font-size: 13px !important;
+  line-height: 1.4 !important;
 }
 html.rr-active #issue-form select[multiple] {
   min-height: 90px !important;
@@ -326,6 +335,8 @@ html.rr-active #issue-form .check_box_group label.rr-nt-nomatch {
 html.rr-active #issue-form .rr-nt-filter {
   box-sizing: border-box !important;
   width: 100% !important;
+  height: auto !important;
+  min-height: 28px !important;
   margin-bottom: 4px !important;
   padding: 4px 7px !important;
   border-radius: 6px !important;
@@ -349,6 +360,7 @@ html.rr-active #issue-form #watchers_form_container {
 html.rr-active #issue-form input[type="file"] {
   background: none !important;
   border: none !important;
+  height: auto !important;
   padding: 0 !important;
   color: var(--rr-muted) !important;
   font-family: var(--rr-font) !important;
@@ -395,6 +407,8 @@ html.rr-active #issue-form .rr-nt-actions {
   ) !important;
 }
 html.rr-active #issue-form .rr-nt-actions input[type="submit"] {
+  /* same reason as the fields above: any pinned height would crop the label */
+  height: auto !important;
   padding: 8px 18px !important;
   border-radius: 7px !important;
   font-family: var(--rr-font) !important;
